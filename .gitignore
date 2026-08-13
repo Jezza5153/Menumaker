@@ -1,0 +1,10 @@
+node_modules
+.vercel
+.env*.local
+menu.json
+menu.tmp
+backups/
+pdf/
+log.txt
+menukaart.html
+public/index.html

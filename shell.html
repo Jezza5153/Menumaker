@@ -1,0 +1,1024 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>De Tafelaar — menukaart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bevan&family=Sorts+Mill+Goudy:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style id="pagerule">@page{size:A5;margin:0}</style>
+
+<style>
+/* kleuren gemeten uit De_Tafelaar_menu_januari_versie.pdf */
+:root{
+  --burg:#481723; --tan:#D6C19B; --wood:#BEA271; --mauve:#A38B91;
+  --line:#5F3817; --ink:#231F20; --ink-hd:#110F0E; --paper:#FFFFFF;
+  --veg:#5D7A38; --glut:#D8C54B; --lact:#FBF9FB;
+  --body:16pt; --lead:19.2pt; --hd:1;
+  --ui-bg:#17131A; --ui-panel:#221C26; --ui-line:#3A303F;
+  --ui-text:#EDE6E9; --ui-dim:#A0929C; --ui-accent:#B98AA8;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ui-bg);color:var(--ui-text);font-family:'Inter',system-ui,sans-serif;font-size:14px}
+
+.app{display:grid;grid-template-columns:minmax(340px,420px) 1fr;height:100vh}
+@media (max-width:900px){.app{grid-template-columns:1fr;height:auto}}
+.editor{overflow-y:auto;border-right:1px solid var(--ui-line);background:var(--ui-panel)}
+.stage{overflow:auto;background:#0E0B10;padding:26px 16px 60px;position:relative}
+.bar{position:sticky;top:0;z-index:5;background:var(--ui-panel);border-bottom:1px solid var(--ui-line);
+     padding:14px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bar h1{font-family:'Bevan',serif;font-size:15px;font-weight:400;margin:0 auto 0 0;color:var(--tan)}
+button{font-family:inherit;font-size:12.5px;font-weight:500;background:#2E2633;color:var(--ui-text);
+       border:1px solid var(--ui-line);border-radius:7px;padding:7px 11px;cursor:pointer}
+button:hover{background:#3A2F40}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--ui-accent);outline-offset:1px}
+button.primary{background:var(--burg);border-color:#6B2141;color:#F6E8EF}
+button.primary:hover{background:#5E1735}
+button.on{background:var(--ui-accent);border-color:var(--ui-accent);color:#20161C}
+button.mini{padding:3px 7px;font-size:11px;line-height:1.2}
+button.ghost{background:transparent}
+.status{font-size:11.5px;color:var(--ui-dim);border:1px solid var(--ui-line);
+        border-radius:999px;padding:4px 10px}
+.status.ok{color:#7BD8A8;border-color:#2F5B46}
+.status.busy{color:#E8C76A;border-color:#5B4B2A}
+.status.err{color:#F09A9A;border-color:#5B2F2F}
+.sizer{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ui-dim);
+       border:1px solid var(--ui-line);border-radius:7px;padding:3px 6px}
+.sizer output{min-width:38px;text-align:center;color:var(--ui-text);font-variant-numeric:tabular-nums}
+
+.sec{border-bottom:1px solid var(--ui-line);padding:16px}
+.sec>header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.sec>header h2{margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ui-dim)}
+.sec>header .count{font-size:11px;color:#6E6274;margin-left:auto}
+.row.drag{opacity:.35}
+.row.over{box-shadow:0 -2px 0 0 var(--ui-accent)}
+.grab{cursor:grab;color:#6E6274;padding:0 3px;user-select:none;font-size:13px}
+.row select{font-family:inherit;font-size:11.5px;background:#100D13;color:var(--ui-dim);
+       border:1px solid var(--ui-line);border-radius:6px;padding:4px 6px;max-width:140px}
+.insp textarea{font-family:inherit;font-size:13px;background:#100D13;color:var(--ui-text);
+       border:1px solid var(--ui-line);border-radius:6px;padding:6px 8px;width:100%;min-height:52px;resize:vertical}
+.wide{grid-column:1 / -1}
+.row{background:#1B161F;border:1px solid var(--ui-line);border-radius:9px;padding:10px;margin-bottom:9px}
+.row .l1{display:flex;gap:7px;margin-bottom:6px}
+.row input,.row textarea{font-family:inherit;font-size:13px;background:#100D13;color:var(--ui-text);
+       border:1px solid var(--ui-line);border-radius:6px;padding:6px 8px;width:100%}
+.row input.price{width:74px;flex:none;text-align:right}
+.row textarea{resize:vertical;min-height:34px;line-height:1.35}
+.row .l2{display:flex;gap:7px;align-items:center;margin-top:6px}
+.tags{display:flex;gap:4px}
+.tag{width:22px;height:22px;border-radius:50%;border:1px solid var(--ui-line);cursor:pointer;padding:0;opacity:.28}
+.tag:hover{opacity:.6}
+.tag.on{opacity:1;box-shadow:0 0 0 2px #4B3D52}
+.tag[data-t="v"]{background:var(--veg)}.tag[data-t="g"]{background:var(--glut)}.tag[data-t="l"]{background:var(--lact)}
+.rowtools{margin-left:auto;display:flex;gap:4px}
+textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;background:#100D13;color:var(--ui-text);
+       border:1px solid var(--ui-line);border-radius:8px;padding:9px;min-height:120px}
+.hint{font-size:11.5px;color:var(--ui-dim);margin:0 0 10px;line-height:1.45}
+
+/* ---------- inspecteur ---------- */
+.insp{position:fixed;right:18px;bottom:18px;width:268px;z-index:20;background:var(--ui-panel);
+      border:1px solid var(--ui-line);border-radius:12px;padding:13px;box-shadow:0 14px 44px rgba(0,0,0,.6)}
+.insp[hidden]{display:none}
+.insp h3{margin:0 0 3px;font-size:13px;font-weight:600}
+.insp .sub{font-size:11px;color:var(--ui-dim);margin-bottom:11px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.fld{display:flex;flex-direction:column;gap:3px}
+.fld label{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ui-dim)}
+.fld input{font-family:inherit;font-size:13px;background:#100D13;color:var(--ui-text);
+      border:1px solid var(--ui-line);border-radius:6px;padding:5px 7px;width:100%;
+      font-variant-numeric:tabular-nums}
+.insp footer{display:flex;gap:6px;margin-top:11px}
+.insp footer button{flex:1}
+
+/* ---------- de kaart ---------- */
+.preview{width:max-content;margin:0 auto}
+.page{-webkit-print-color-adjust:exact;print-color-adjust:exact;position:relative;isolation:isolate;width:148mm;height:210mm;background:var(--tan);overflow:hidden;
+      margin:0 auto 16px;box-shadow:0 10px 40px rgba(0,0,0,.55);
+      font-family:'Sorts Mill Goudy',Georgia,serif;color:var(--ink)}
+.page img{display:block;width:148mm;height:210mm}
+
+.a4{position:relative;width:297mm;height:210mm;display:flex;justify-content:center;
+    background:#fff;margin:0 auto 16px;box-shadow:0 10px 40px rgba(0,0,0,.55)}
+.a4 .page{margin:0;box-shadow:none}
+.a4 .pagetag{display:none}
+.a4.gedraaid{transform:rotate(180deg)}
+.snij{position:absolute;left:148.5mm;width:.2mm;height:5mm;background:#8A8A8A}
+.snij.t{top:0}.snij.b{bottom:0}
+.velnaam{position:absolute;left:0;top:-15px;font-family:'Inter',sans-serif;font-size:10px;
+         letter-spacing:.1em;text-transform:uppercase;color:#6E6274}
+
+.deco{position:absolute;background:var(--wood)}
+.frame{position:absolute;border:.75mm solid var(--line)}
+.hd{position:absolute;font-family:'Bevan',serif;font-weight:400;line-height:1;white-space:nowrap;
+    transform:scaleX(.84);transform-origin:left top}
+.hd.r{transform-origin:right top;text-align:right}
+.hd.fill{color:var(--paper)}
+.hd.ink{color:var(--ink-hd)}
+.hd.burg{color:var(--burg)}
+.hd.outline{color:transparent;-webkit-text-stroke:.4mm var(--paper)}
+.bar-burg{position:absolute;background:var(--burg)}
+.rule{position:absolute;background:var(--paper)}
+
+.block{position:absolute;display:grid;align-content:start;overflow:hidden;row-gap:var(--lead)}
+.block .pricebg{position:absolute;top:0;bottom:0;right:0;background:var(--mauve)}
+.block.dark{background:var(--burg);color:var(--paper)}
+.block.light{color:var(--ink)}
+.block .it{z-index:1}
+.block .nm{font-size:var(--fsN,var(--body));line-height:1.2}
+.block .nm .dot{margin-left:1.2mm}
+.nw{white-space:nowrap}
+.block .ds{font-size:var(--fsD,var(--body));line-height:1.2}
+.block .pr{font-size:var(--fsP,var(--body));line-height:1.2;text-align:center;align-self:start;z-index:1}
+.editing .it,.editing .pr{cursor:text}
+.it.selitem,.pr.selitem{outline:1.5px dashed var(--ui-accent);outline-offset:2px}
+.dot{width:2.6mm;height:2.6mm;border-radius:50%;display:inline-block;flex:none;vertical-align:baseline;transform:translateY(-.3mm)}
+.dot.v{background:var(--veg)}.dot.g{background:var(--glut)}.dot.l{background:var(--lact)}
+
+.boxed{position:absolute;border:.75mm solid var(--line);display:flex;align-items:center;justify-content:center;
+       text-align:center;font-size:var(--body);line-height:var(--lead);padding:3mm;overflow:hidden}
+.legend{position:absolute;background:var(--burg);color:var(--paper);font-size:calc(var(--body)*.875);
+        line-height:var(--lead);padding:3mm;display:flex;flex-direction:column;justify-content:space-around}
+.legend div{display:flex;align-items:center;gap:2.4mm}
+.legend .dot{width:3.4mm;height:3.4mm}
+.vtab{position:absolute;writing-mode:vertical-rl;transform:rotate(180deg);font-family:'Bevan',serif;
+      color:transparent;-webkit-text-stroke:.35mm var(--paper);line-height:1}
+
+/* ---------- bewerkstand ---------- */
+.editing [data-el]{cursor:move}
+.editing [data-el]:hover{outline:1px dashed rgba(185,138,168,.85);outline-offset:1px}
+[data-el].sel{outline:1.5px solid var(--ui-accent)!important;outline-offset:1px}
+.guide{position:absolute;background:#31E0C4;z-index:40;pointer-events:none}
+.guide.v{top:0;bottom:0;width:1px}
+.guide.h{left:0;right:0;height:1px}
+.guide.edge{background:#FF7A9C}
+.guide.home{background:#E8C76A}
+.rasterlijn{position:absolute;left:0;right:0;height:1px;z-index:40;pointer-events:none;
+            background:rgba(49,224,196,.3)}
+.rasterlijn.aan{background:#31E0C4;box-shadow:0 0 0 .5px rgba(49,224,196,.45)}
+.rasterlijn.nul{background:#E8C76A}
+.rasterlijn.nul.aan{background:#E8C76A;box-shadow:0 0 0 .5px rgba(232,199,106,.5)}
+.raster-v{position:absolute;top:0;bottom:0;width:1px;z-index:40;pointer-events:none;background:#E8C76A}
+.hud{position:fixed;z-index:60;pointer-events:none;background:#221C26;color:var(--ui-text);
+     border:1px solid var(--ui-line);border-radius:7px;padding:4px 9px;
+     font:11.5px 'Inter',system-ui,sans-serif;font-variant-numeric:tabular-nums;
+     box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.rz{position:absolute;right:-5px;bottom:-5px;width:11px;height:11px;border-radius:3px;
+    background:var(--ui-accent);border:1px solid #20161C;cursor:nwse-resize;z-index:30}
+.pagetag{position:absolute;left:0;top:-15px;font-family:'Inter',sans-serif;font-size:10px;
+         letter-spacing:.1em;text-transform:uppercase;color:#6E6274}
+
+@media print{
+  body{background:#fff}
+  .page,.page *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .app{display:block;height:auto}
+  .editor,.insp{display:none}
+  .stage{overflow:visible;padding:0;background:#fff}
+  .preview{zoom:1!important;width:auto;margin:0}
+  .page{margin:0;box-shadow:none;break-after:page;page-break-after:always}
+  .page:last-child{break-after:auto;page-break-after:auto}
+  .a4{margin:0;box-shadow:none;break-after:page;page-break-after:always}
+  .a4:last-child{break-after:auto;page-break-after:auto}
+  .a4 .page{break-after:auto;page-break-after:auto}
+  .velnaam{display:none}
+  .pagetag,.rz,.guide{display:none}
+  [data-el]{outline:none!important}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <div class="editor">
+    <div class="bar">
+      <h1>Menukaart</h1>
+      <button class="primary" id="print">Print</button>
+      <button class="primary" id="pdf">PDF maken</button>
+      <button id="save">Bewaar</button>
+      <button id="load">Open</button>
+      <button id="undo" title="Ongedaan maken (Cmd+Z)">↶</button>
+      <button id="redo" title="Opnieuw (Cmd+Shift+Z)">↷</button>
+      <button id="edit">Indeling bewerken</button>
+      <button id="snap" class="on">Uitlijnhulp</button>
+      <button id="opzet">Print: los A5</button>
+      <button id="omslag" hidden>Omslaan: lange zijde</button>
+      <div class="sizer"><span>Titel</span>
+        <button class="mini" data-sz="nm" data-d="-.5">−</button><output id="szNm">16</output>
+        <button class="mini" data-sz="nm" data-d=".5">+</button></div>
+      <div class="sizer"><span>Omschr.</span>
+        <button class="mini" data-sz="ds" data-d="-.5">−</button><output id="szDs">16</output>
+        <button class="mini" data-sz="ds" data-d=".5">+</button></div>
+      <div class="sizer"><span>Kadertekst</span>
+        <button class="mini" data-sz="body" data-d="-.5">−</button><output id="szBody">16</output>
+        <button class="mini" data-sz="body" data-d=".5">+</button></div>
+      <div class="sizer"><span>Koppen</span>
+        <button class="mini" data-sz="hd" data-d="-.05">−</button><output id="szHd">100%</output>
+        <button class="mini" data-sz="hd" data-d=".05">+</button></div>
+      <span class="status" id="status" hidden>—</span>
+      <div class="sizer"><span>Zoom</span>
+        <button class="mini" data-zm="-.1">−</button><output id="szZoom">85%</output>
+        <button class="mini" data-zm=".1">+</button></div>
+    </div>
+    <div id="form"></div>
+  </div>
+  <div class="stage"><div class="preview" id="preview"></div></div>
+</div>
+
+<aside class="insp" id="insp" hidden>
+  <h3 id="iName">—</h3>
+  <div class="sub" id="iSub"></div>
+  <div class="grid2" id="iFields"></div>
+  <footer>
+    <button class="mini" id="iReset">Origineel</button>
+    <button class="mini" id="iClose">Sluiten</button>
+  </footer>
+</aside>
+
+<input type="file" id="file" accept="application/json" hidden>
+
+<script>
+const TAGS={v:'Vegetarisch',g:'Glutenvrij',l:'Lactosevrij'};
+
+/* ====== gemeten maatvoering uit de originele PDF, in mm ====== */
+const LAYOUT={
+ 'p2.deco'   :{lb:'Decorvlak',       l:0,    t:0,     w:52.75, h:210},
+ 'p2.frame'  :{lb:'Kader',           l:3.64, t:5.16,  w:140.12,h:198.29},
+ 'p2.hdHet'  :{lb:'Kop HET',         l:20,   t:14.6,  w:39.5,  fs:36},
+ 'p2.barCon' :{lb:'Balk CONCEPT',    l:62.31,t:12.7,  w:47.58, h:19.05},
+ 'p2.hdCon'  :{lb:'Kop CONCEPT',     l:65.1, t:15.6,  fs:36},
+ 'p2.boxCon' :{lb:'Conceptkader',    l:17.44,t:40.89, w:111.85,h:57.92},
+ 'p2.barArr' :{lb:'Balk ARRANGEMENTEN',l:5.16,t:130.22,w:111.08,h:12.7},
+ 'p2.hdArr'  :{lb:'Kop ARRANGEMENTEN',l:7.4, t:132.1, fs:29},
+ 'p2.ruleArr':{lb:'Streep',          l:62,   t:135.6, w:51,    h:.5},
+ 'p2.blkArr' :{lb:'Blok arrangementen',l:5.16,t:146.05,w:111.51,h:54.02,pw:15.92},
+
+ 'p3.deco'   :{lb:'Decorvlak',       l:0,    t:0,     w:148,   h:74.25},
+ 'p3.frame'  :{lb:'Kader',           l:3.98, t:5.16,  w:140.21,h:198.21},
+ 'p3.barKaz' :{lb:'Balk KAZEN',      l:3.98, t:9.74,  w:55.54, h:16.08},
+ 'p3.hdKaz'  :{lb:'Kop KAZEN',       l:6.4,  t:11.4,  fs:40},
+ 'p3.hdCha'  :{lb:'Kop CHARCUTERIE', l:70,   t:12.6,  w:71.4,  fs:40},
+ 'p3.blkKaz' :{lb:'Blok kazen',      l:3.98, t:25.82, w:66.55, h:99.07, pw:12.11},
+ 'p3.blkCha' :{lb:'Blok charcuterie',l:73,   t:25.82, w:71.19, h:99.07, pw:15.4},
+ 'p3.blkBor' :{lb:'Blok borrel',     l:57.15,t:139.19,w:87.04, h:58.59, pw:13.21},
+ 'p3.vtabBor':{lb:'Tab BORREL',      l:58.4, t:142,   h:53,    fs:30},
+ 'p3.legend' :{lb:'Legenda',         l:9.4,  t:155.62,w:29.55, h:47.75},
+
+ 'p5.deco'   :{lb:'Decorvlak',       l:95.42,t:0,     w:52.58, h:210},
+ 'p5.frame'  :{lb:'Kader',           l:2.79, t:5.76,  w:142.41,h:198.2},
+ 'p5.hdKou'  :{lb:'Kop KOUD',        l:5.9,  t:8.3,   fs:44},
+ 'p5.barWar' :{lb:'Balk WARM',       l:101.94,t:6.77, w:38.1,  h:12.7},
+ 'p5.hdWar'  :{lb:'Kop WARM',        l:104.2,t:8.4,   fs:32},
+ 'p5.blkKou' :{lb:'Blok koud',       l:3.56, t:22.69, w:66.04, h:88.9,  pw:17.53},
+ 'p5.hdKla'  :{lb:'Kop KLASSIEKERS', l:6.9,  t:119.4, fs:40},
+ 'p5.blkKla' :{lb:'Blok klassiekers',l:3.56, t:133.77,w:66.54, h:69.51, pw:17.95},
+ 'p5.blkWar' :{lb:'Blok warm',       l:72,   t:22.69, w:72.19, h:180.5, pw:15.4},
+
+ 'p7.deco'   :{lb:'Decorvlak',       l:59.1, t:0,     w:88.9,  h:210},
+ 'p7.frame'  :{lb:'Kader',           l:3.89, t:5.16,  w:140.21,h:198.29},
+ 'p7.barDes' :{lb:'Balk DESSERTS',   l:4.66, t:22.27, w:114.8, h:15.91},
+ 'p7.hdDes'  :{lb:'Kop DESSERTS',    l:7.2,  t:24.4,  fs:44},
+ 'p7.rule1'  :{lb:'Streep boven',    l:86,   t:29.04, w:31,    h:.68},
+ 'p7.rule2'  :{lb:'Streep onder',    l:86,   t:32.77, w:31,    h:.67},
+ 'p7.blkDes' :{lb:'Blok desserts',   l:4.66, t:38.18, w:77.81, h:133.27,pw:18.12},
+ 'p7.boxWiT' :{lb:'Kader kop Wist je dat',l:84.16,t:91.69,w:57.83,h:19.82},
+ 'p7.hdWi'   :{lb:'Kop Wist je dat', l:88.5, t:96.5, fs:36},
+ 'p7.boxWi'  :{lb:'Kader tekst Wist je dat',l:84.16,t:110.74,w:57.83,h:80.1}
+};
+
+const DEFAULT={
+ type:{body:16,nm:16,ds:16,hd:1}, zoom:.85, layout:{},
+ concept:`Bij De Tafelaar draait alles om aandacht. Aandacht voor smaak, voor het product, voor duurzaamheid en natuurlijk voor onze gasten.
+We houden van samen genieten. Uit eten met vrienden, een avond uitgebreid tafelen of juist spontaan aanschuiven aan onze gezamenlijke tafel. Alles kan, niets hoeft.
+Ons concept is simpel: bestel 2 à 3 gerechtjes per persoon, dit is genoeg voor een avondmaaltijd. Een beetje à la tapas, dus: lekker delen en gewoon kiezen waar je zin in hebt. Dan zetten wij het met plezier voor je op tafel.`,
+ wist:`Wist je dat we bij De Tafelaar ook catering verzorgen voor alle soorten evenementen? Van (kantoor)lunch tot borrel of diner, we denken graag mee. En als je een fijne plek zoekt: onze locatie is ook te boeken voor leuke partijen!
+Nieuwsgierig naar de opties (catering of zaal)? Laat het even weten.`,
+ s:{
+  arrangementen:[
+   {n:'Lekker Borrelen',d:'Een leuk charcuterie- en kaasplankje\nMinimaal 2 personen (P.P.)',p:'12,50',t:[]},
+   {n:"Chef's choice",d:'Uitgebreid genieten',p:'45',t:[]},
+   {n:'Bijpassend wijnarrangement',d:'',p:'28',t:[]}],
+  kazen:[
+   {n:'Geitenbrie',d:'Vijgenchutney - Sfoglie',p:'7',t:['v']},
+   {n:'Hoeve Goud Intens',d:'Biermosterd - Dadelbrood',p:'7,50',t:['v']},
+   {n:'Oudwijker Fiore',d:'Vijgenchutney - Sfoglie',p:'8,50',t:['v']},
+   {n:'Manchego',d:'Geroosterde Notenmix - Biermosterd',p:'9',t:['v']},
+   {n:'Arcadia Blauw',d:'Vijgencompote - Sfoglie',p:'8,50',t:['v']}],
+  charcuterie:[
+   {n:'Veluwnaartje',d:'Biologisch rundvlees - Kesbeke Smuluitjes',p:'7',t:['g','l']},
+   {n:'Venkelworstje',d:'Biologisch rundvlees - Kesbeke Cornichon',p:'7',t:['g','l']},
+   {n:'Serrano Ham handgesneden',d:'Geconfijte Knoflook - Croutons',p:'8',t:['l']},
+   {n:'Peperworstje',d:'Biologisch rundvlees - Kesbeke Cornichon',p:'7',t:['g','l']},
+   {n:'Gedroogde Twentse Worst',d:'Kesbeke Cornichon',p:'6,50',t:['g','l']}],
+  borrel:[
+   {n:'Peppadews',d:'Gevulde Pepertjes met Roomkaas',p:'6,50',t:['v','g']},
+   {n:'Olijven',d:'In De Tafelaars Kruidenmix',p:'4,50',t:['v','g','l']},
+   {n:'Gerookte Notenmix',d:'Huisgemaakte Notenmix',p:'3,50',t:['v','l']}],
+  koud:[
+   {n:'Miso Zalm',d:'Kokos dressing',p:'15,50',t:['l','g']},
+   {n:'Carpaccio van Bieten',d:'Geitenkaas - Walnoot - Honing',p:'10,50',t:['v','g']},
+   {n:'Broodplankje',d:'Met wisselende dips',p:'7,50',t:['v']},
+   {n:'Watermeloen',d:'Munt - Citroen',p:'13',t:['v','g','l']}],
+  klassiekers:[
+   {n:'Gevulde Eitjes',d:'Mayonaise - Bieslook -\n3 stuks',p:'7,50',t:['v','g','l']},
+   {n:'Carpaccio',d:'Biologisch Rundvlees -\nTruffelmayonaise - Parmezaan',p:'12,50',t:['g']},
+   {n:'Vitello Tonnato',d:'Biologisch Kalfsvlees -\nTonijnmayonaise - Kappertjes',p:'12,50',t:['l','g']},
+   {n:'Bruschetta',d:'Knoflook - Olijfolie - Tomaat -\n3 stuks (+3 stuks €4,50)',p:'9',t:['v','l']}],
+  warm:[
+   {n:'Spare Ribs',d:'Van het bot vallend - Sweet & Spicy',p:'13,50',t:['l','g']},
+   {n:'Runderballetjes',d:'Biologisch Rundvlees - Parmezaan -\nTomatensaus',p:'11',t:[]},
+   {n:'Miso Groententuin',d:'',p:'11,50',t:['v','l']},
+   {n:'Ossobuco',d:'Polenta - Gremolata',p:'13,50',t:[]},
+   {n:'Japanse curry',d:'Seizoensgroente - Udon noodles',p:'11,50',t:['v','l']},
+   {n:'Bao Bun',d:'Sriracha Mayonaise - Lente-ui -\n2 stuks',p:'12,50',t:['l']}],
+  desserts:[
+   {n:'Parfait',d:'Smaak van de week',p:'8,50',t:['v','g']},
+   {n:'Dame Blanche',d:'Warme Chocolade - Vanille ijs -\nSlagroom',p:'8,50',t:['v','g']},
+   {n:'Snickers',d:'Snickers, maar dan vegan.',p:'8,50',t:['v','g','l']},
+   {n:'Local Dessert',d:'Vraag de bediening voor meer informatie.',p:'9',t:['v']},
+   {n:'Kaasplankje',d:'Selectie van 3 verschillende kazen.',p:'15',t:['v']}]
+ }};
+
+const SECTIONS=[['arrangementen','Arrangementen — pag. 2'],['kazen','Kazen — pag. 3'],
+ ['charcuterie','Charcuterie — pag. 3'],['borrel','Borrel — pag. 3'],['koud','Koud — pag. 5'],
+ ['klassiekers','Klassiekers — pag. 5'],['warm','Warm — pag. 5'],['desserts','Desserts — pag. 7']];
+
+let m=structuredClone(DEFAULT);
+let editing=false, sel=null, selItem=null;
+
+const $=id=>document.getElementById(id);
+const form=$('form'), preview=$('preview'), insp=$('insp');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nl=s=>esc(s).replace(/\n/g,'<br>');
+const dots=t=>t.map(x=>`<span class="dot ${x}"></span>`).join('');
+
+function naam(it){
+  const t=esc(it.n);
+  if(!it.t||!it.t.length) return t;
+  const i=t.lastIndexOf(' ');
+  const kop=i>0?t.slice(0,i+1):'';
+  const staart=i>0?t.slice(i+1):t;
+  return kop+`<span class="nw">${staart}${dots(it.t)}</span>`;
+}
+const num=v=>Math.round(v*100)/100;
+
+/* ---------- geschiedenis ---------- */
+let past=[], future=[], histTimer=null;
+function snap(){ return JSON.stringify(m); }
+function commit(now){
+  clearTimeout(histTimer);
+  const go=()=>{
+    const cur=snap();
+    if(past.length && past[past.length-1]===cur) return;
+    past.push(cur); if(past.length>80) past.shift();
+    future.length=0; refreshHist();
+  };
+  now?go():histTimer=setTimeout(go,450);
+}
+function restore(str){ m=JSON.parse(str); applyType(); drawForm(); draw(true); drawInsp(); }
+function undo(){
+  if(past.length<2) return;
+  future.push(past.pop());
+  restore(past[past.length-1]); refreshHist();
+}
+function redo(){
+  if(!future.length) return;
+  const st=future.pop(); past.push(st); restore(st); refreshHist();
+}
+function refreshHist(){
+  $('undo').disabled=past.length<2;
+  $('redo').disabled=!future.length;
+}
+
+/* geometrie van een element: gemeten waarde, eventueel overschreven */
+function L(id){ return Object.assign({},LAYOUT[id],(m.layout||{})[id]||{}); }
+function geo(id){
+  const g=L(id); let s=`left:${g.l}mm;top:${g.t}mm;`;
+  if(g.w!=null) s+=`width:${g.w}mm;`;
+  if(g.h!=null) s+=`height:${g.h}mm;`;
+  if(g.fs!=null) s+=`font-size:calc(${g.fs}pt * var(--hd));`;
+  return s;
+}
+function set(id,k,v){ (m.layout[id]=m.layout[id]||{})[k]=v; }
+
+/* een gerechtenblok */
+const SECOF={'p2.blkArr':'arrangementen','p3.blkKaz':'kazen','p3.blkCha':'charcuterie',
+  'p3.blkBor':'borrel','p5.blkKou':'koud','p5.blkKla':'klassiekers','p5.blkWar':'warm',
+  'p7.blkDes':'desserts'};
+
+function block(id,list,theme,extraPad){
+  const g=L(id), sec=SECOF[id];
+  const rows=list.map((it,i)=>{
+    const selc = (selItem&&selItem.sec===sec&&selItem.idx===i)?' selitem':'';
+    const nfs = it.fsN?`font-size:${it.fsN}pt;`:'';
+    const dfs = it.fsD?`font-size:${it.fsD}pt;`:'';
+    const dx=it.dx||0, dy=it.dy||0;
+    const off = (dx||dy)?`transform:translate(${dx}mm,${dy}mm);`:'';
+    const pxx=num(dx+(it.px||0)), pyy=num(dy+(it.py||0));
+    const pof = (pxx||pyy)?`transform:translate(${pxx}mm,${pyy}mm);`:'';
+    return `<div class="it${selc}" data-sec="${sec}" data-idx="${i}" style="${off}">`+
+      `<div class="nm" style="${nfs}">${naam(it)}</div>`+
+      (it.d?`<div class="ds" style="${dfs}">${nl(it.d)}</div>`:'')+`</div>`+
+      `<div class="pr${selc}" data-sec="${sec}" data-idx="${i}" style="${pof}">${esc(it.p)}</div>`;
+  }).join('');
+  let fs='';
+  if(g.fs!=null) fs+=`--body:${g.fs}pt;--lead:${num(g.fs*1.2)}pt;`;
+  if(g.fsN!=null) fs+=`--fsN:${g.fsN}pt;`;
+  if(g.fsD!=null) fs+=`--fsD:${g.fsD}pt;`;
+  if(g.fsP!=null) fs+=`--fsP:${g.fsP}pt;`;
+  return `<div class="block ${theme}" data-el="${id}" style="${geo(id)}${fs}
+      grid-template-columns:1fr ${g.pw}mm;padding:1.6mm 0 0 ${extraPad??(theme==='dark'?2.4:0)}mm">
+      ${theme==='dark'?`<div class="pricebg" style="width:${g.pw}mm"></div>`:''}${rows}</div>`;
+}
+
+function draw(skipHist){
+  if(!skipHist) commit();
+  preview.innerHTML=`
+<div class="page"><span class="pagetag">1 · kaft</span><img alt="kaft" src="data:image/png;base64,__IMG1__"></div>
+
+<div class="page"><span class="pagetag">2 · concept</span>
+  <div class="deco" data-el="p2.deco" style="${geo('p2.deco')}"></div>
+  <div class="frame" data-el="p2.frame" style="${geo('p2.frame')}"></div>
+  <div class="hd burg r" data-el="p2.hdHet" style="${geo('p2.hdHet')}">HET</div>
+  <div class="bar-burg" data-el="p2.barCon" style="${geo('p2.barCon')}"></div>
+  <div class="hd outline" data-el="p2.hdCon" style="${geo('p2.hdCon')}">CONCEPT</div>
+  <div class="boxed" data-el="p2.boxCon" style="${geo('p2.boxCon')}"><div>${nl(m.concept)}</div></div>
+  <div class="bar-burg" data-el="p2.barArr" style="${geo('p2.barArr')}"></div>
+  <div class="hd fill" data-el="p2.hdArr" style="${geo('p2.hdArr')}">ARRANGEMENTEN</div>
+  <div class="rule" data-el="p2.ruleArr" style="${geo('p2.ruleArr')}"></div>
+  ${block('p2.blkArr',m.s.arrangementen,'dark')}
+</div>
+
+<div class="page"><span class="pagetag">3 · kazen · charcuterie · borrel</span>
+  <div class="deco" data-el="p3.deco" style="${geo('p3.deco')}"></div>
+  <div class="frame" data-el="p3.frame" style="${geo('p3.frame')}"></div>
+  <div class="bar-burg" data-el="p3.barKaz" style="${geo('p3.barKaz')}"></div>
+  <div class="hd fill" data-el="p3.hdKaz" style="${geo('p3.hdKaz')}">KAZEN</div>
+  <div class="hd ink r" data-el="p3.hdCha" style="${geo('p3.hdCha')}">CHARCUTERIE</div>
+  ${block('p3.blkKaz',m.s.kazen,'dark')}
+  ${block('p3.blkCha',m.s.charcuterie,'light')}
+  ${block('p3.blkBor',m.s.borrel,'dark',15.6)}
+  <div class="vtab" data-el="p3.vtabBor" style="${geo('p3.vtabBor')}">BORREL</div>
+  <div class="legend" data-el="p3.legend" style="${geo('p3.legend')}">
+    ${Object.entries(TAGS).map(([k,v])=>`<div><span class="dot ${k}"></span>${v}</div>`).join('')}
+  </div>
+</div>
+
+<div class="page"><span class="pagetag">4 · achterkant</span><img alt="achterkant" src="data:image/png;base64,__IMG2__"></div>
+
+<div class="page"><span class="pagetag">5 · koud · klassiekers · warm</span>
+  <div class="deco" data-el="p5.deco" style="${geo('p5.deco')}"></div>
+  <div class="frame" data-el="p5.frame" style="${geo('p5.frame')}"></div>
+  <div class="hd burg" data-el="p5.hdKou" style="${geo('p5.hdKou')}">KOUD</div>
+  <div class="bar-burg" data-el="p5.barWar" style="${geo('p5.barWar')}"></div>
+  <div class="hd outline" data-el="p5.hdWar" style="${geo('p5.hdWar')}">WARM</div>
+  ${block('p5.blkKou',m.s.koud,'dark')}
+  <div class="hd burg" data-el="p5.hdKla" style="${geo('p5.hdKla')}">KLASSIEKERS</div>
+  ${block('p5.blkKla',m.s.klassiekers,'dark')}
+  ${block('p5.blkWar',m.s.warm,'light')}
+</div>
+
+<div class="page"><span class="pagetag">6 · achterkant</span><img alt="achterkant" src="data:image/png;base64,__IMG3__"></div>
+
+<div class="page"><span class="pagetag">7 · desserts</span>
+  <div class="deco" data-el="p7.deco" style="${geo('p7.deco')}"></div>
+  <div class="frame" data-el="p7.frame" style="${geo('p7.frame')}"></div>
+  <div class="bar-burg" data-el="p7.barDes" style="${geo('p7.barDes')}"></div>
+  <div class="hd outline" data-el="p7.hdDes" style="${geo('p7.hdDes')}">DESSERTS</div>
+  <div class="rule" data-el="p7.rule1" style="${geo('p7.rule1')}"></div>
+  <div class="rule" data-el="p7.rule2" style="${geo('p7.rule2')}"></div>
+  ${block('p7.blkDes',m.s.desserts,'dark')}
+  <div class="boxed" data-el="p7.boxWiT" style="${geo('p7.boxWiT')}"></div>
+  <div class="hd burg" data-el="p7.hdWi" style="${geo('p7.hdWi')}">Wist je dat?</div>
+  <div class="boxed" data-el="p7.boxWi" style="${geo('p7.boxWi')};align-items:flex-start">
+    <div style="padding-top:2mm">${nl(m.wist)}</div></div>
+</div>
+
+<div class="page"><span class="pagetag">8 · achterkant</span><img alt="achterkant" src="data:image/png;base64,__IMG4__"></div>`;
+
+  imposeer();
+  if(sel){ const el=preview.querySelector(`[data-el="${CSS.escape(sel)}"]`); if(el) mark(el); else {sel=null; drawInsp();} }
+}
+
+const VELLEN=[[0,2],[3,1],[4,6],[7,5]];
+const VELNAAM=['vel 1 · voorkant','vel 1 · achterkant','vel 2 · voorkant','vel 2 · achterkant'];
+
+function imposeer(){
+  if(m.print!=='a4') return;
+  const ps=[...preview.children].filter(n=>n.classList.contains('page'));
+  if(ps.length<8) return;
+  const frag=document.createDocumentFragment();
+  VELLEN.forEach(([a,b],i)=>{
+    const v=document.createElement('div');
+    v.className='a4';
+    v.appendChild(ps[a]); v.appendChild(ps[b]);
+    if(i%2===1 && m.flip!=='kort') v.classList.add('gedraaid');
+    v.insertAdjacentHTML('beforeend',
+      `<span class="snij t"></span><span class="snij b"></span>`+
+      `<span class="velnaam">${VELNAAM[i]}</span>`);
+    frag.appendChild(v);
+  });
+  preview.innerHTML=''; preview.appendChild(frag);
+}
+
+function applyPrint(){
+  if(!m.print) m.print='a5';
+  document.getElementById('pagerule').textContent = m.print==='a4'
+    ? '@page{size:A4 landscape;margin:0}'
+    : '@page{size:A5;margin:0}';
+  const b=document.getElementById('opzet');
+  b.textContent = m.print==='a4' ? 'Print: 2 op A4' : 'Print: los A5';
+  b.classList.toggle('on', m.print==='a4');
+  const o=document.getElementById('omslag');
+  o.hidden = m.print!=='a4';
+  if(!m.flip) m.flip='lang';
+  o.textContent = m.flip==='kort' ? 'Omslaan: korte zijde' : 'Omslaan: lange zijde';
+}
+document.getElementById('omslag').onclick=()=>{ m.flip = m.flip==='kort' ? 'lang' : 'kort'; applyPrint(); draw(); };
+document.getElementById('opzet').onclick=()=>{ m.print = m.print==='a4' ? 'a5' : 'a4'; applyPrint(); draw(); };
+
+/* ---------- selectie, slepen en schalen ---------- */
+function mark(el){
+  preview.querySelectorAll('.sel').forEach(n=>{n.classList.remove('sel');n.querySelector(':scope>.rz')?.remove();});
+  el.classList.add('sel');
+  const g=L(sel);
+  if(g.w!=null&&g.h!=null){ const h=document.createElement('div'); h.className='rz'; el.appendChild(h); }
+}
+function mmPerPx(){ const p=preview.querySelector('.page'); return 148/p.getBoundingClientRect().width; }
+
+/* ---------- uitlijnen ---------- */
+let snapOn=true;
+const TOL=0.7;   /* magneetafstand in mm */
+
+function boxOf(page,node){
+  const pr=page.getBoundingClientRect(), k=148/pr.width, r=node.getBoundingClientRect();
+  return {x:(r.left-pr.left)*k, y:(r.top-pr.top)*k, w:r.width*k, h:r.height*k};
+}
+function candidates(page,skip,metGerechten){
+  const X=[0,74,148], Y=[0,105,210], edge=new Set([0,74,148,105,210]);
+  page.querySelectorAll(metGerechten?'[data-el],.it,.pr':'[data-el]').forEach(n=>{
+    if(n===skip||n.contains(skip)) return;
+    const b=boxOf(page,n);
+    X.push(b.x,b.x+b.w/2,b.x+b.w);
+    Y.push(b.y,b.y+b.h/2,b.y+b.h);
+  });
+  return {X,Y,edge};
+}
+
+const mmTxt=v=>(v>0?'+':'')+v.toFixed(2).replace('.',',');
+function hudMaak(){ const d=document.createElement('div'); d.className='hud'; document.body.appendChild(d); return d; }
+function hudZet(d,txt,ev){ d.textContent=txt; d.style.left=(ev.clientX+16)+'px'; d.style.top=(ev.clientY+18)+'px'; }
+
+function snapAxis(pos,size,cands){
+  if(!snapOn) return null;
+  let best=null;
+  for(const [e,off] of [[pos,0],[pos+size/2,size/2],[pos+size,size]])
+    for(const c of cands){
+      const d=Math.abs(e-c);
+      if(d<=TOL && (!best||d<best.d)) best={d,v:c-off,line:c};
+    }
+  return best;
+}
+function showGuides(page,lines){
+  page.querySelectorAll('.guide').forEach(n=>n.remove());
+  for(const g of lines){
+    const d=document.createElement('div');
+    d.className='guide '+g.axis+(g.home?' home':(g.edge?' edge':''));
+    d.style[g.axis==='v'?'left':'top']=g.at+'mm';
+    page.appendChild(d);
+  }
+}
+function clearGuides(){ preview.querySelectorAll('.guide').forEach(n=>n.remove()); }
+
+preview.addEventListener('pointerdown',e=>{
+  if(!editing) return;
+  const handle=e.target.closest('.rz');
+  const el=e.target.closest('[data-el]');
+  const itEl=e.target.closest('.it,.pr');
+
+  /* al geselecteerd? dan versleep je de tekst zelf in plaats van het blok */
+  if(itEl && selItem && selItem.sec===itEl.dataset.sec && selItem.idx===+itEl.dataset.idx){
+    e.preventDefault();
+    const it=m.s[selItem.sec][selItem.idx];
+    const alleenPrijs=e.altKey;
+    const kx=alleenPrijs?'px':'dx', ky=alleenPrijs?'py':'dy';
+    const k0=mmPerPx(), x0=e.clientX, y0=e.clientY;
+    const s0={x:it[kx]||0, y:it[ky]||0};
+    const page=itEl.closest('.page'), blok=itEl.closest('.block');
+    const q=`[data-sec="${CSS.escape(itEl.dataset.sec)}"][data-idx="${itEl.dataset.idx}"]`;
+    const txEl=blok.querySelector('.it'+q), prEl=blok.querySelector('.pr'+q);
+    const nmEl=txEl.querySelector('.nm');
+    const lh=parseFloat(getComputedStyle(nmEl).lineHeight)*k0 || 6.77;
+    const bb=boxOf(page,blok), b0=boxOf(page,itEl);
+    const rustY=b0.y-(it.dy||0)-bb.y, rustX=b0.x-(it.dx||0)-bb.x;
+    const absX=b0.x-s0.x, absY=b0.y-s0.y;
+    const cand=candidates(page,itEl,true);
+    const raster=[];
+    for(let r=-10;r<=20;r++){
+      const y=rustY+r*lh;
+      if(y<0||y>bb.h) continue;
+      const d=document.createElement('div');
+      d.className='rasterlijn'+(r===0?' nul':'');
+      d.dataset.r=r; d.style.top=y+'mm';
+      blok.appendChild(d); raster.push(d);
+    }
+    const vlijn=document.createElement('div');
+    vlijn.className='raster-v'; vlijn.style.left=rustX+'mm'; vlijn.style.display='none';
+    blok.appendChild(vlijn);
+
+    const hud=hudMaak();
+    const zet=()=>{
+      const dx=it.dx||0, dy=it.dy||0;
+      txEl.style.transform=(dx||dy)?`translate(${dx}mm,${dy}mm)`:'';
+      const px=num(dx+(it.px||0)), py=num(dy+(it.py||0));
+      if(prEl) prEl.style.transform=(px||py)?`translate(${px}mm,${py}mm)`:'';
+    };
+    const mv=ev=>{
+      let dx=s0.x+(ev.clientX-x0)*k0, dy=s0.y+(ev.clientY-y0)*k0;
+      let regels=null; const lines=[];
+      if(snapOn){
+        if(Math.abs(dx)<=TOL) dx=0;
+        else { const sx=snapAxis(absX+dx,b0.w,cand.X);
+               if(sx){ dx=num(sx.v-absX);
+                       lines.push({axis:'v',at:num(sx.line),edge:cand.edge.has(num(sx.line))}); } }
+        const r=Math.round(dy/lh);
+        if(Math.abs(dy-r*lh)<=TOL){ dy=num(r*lh); regels=r; }
+        else { const sy=snapAxis(absY+dy,b0.h,cand.Y);
+               if(sy){ dy=num(sy.v-absY);
+                       lines.push({axis:'h',at:num(sy.line),edge:cand.edge.has(num(sy.line))}); } }
+      }
+      it[kx]=num(dx); it[ky]=num(dy);
+      zet();
+      raster.forEach(d=>d.classList.toggle('aan', regels!==null && +d.dataset.r===regels));
+      vlijn.style.display = dx===0 ? '' : 'none';
+      showGuides(page,lines);
+      const wat=alleenPrijs?'prijs':'gerecht';
+      const reg=regels===null?'':(regels===0?'   op zijn plek':`   ${regels>0?'+':''}${regels} regel${Math.abs(regels)===1?'':'s'}`);
+      hudZet(hud,`${wat}   ${mmTxt(it[kx])} · ${mmTxt(it[ky])} mm${reg}`,ev);
+      fillInsp();
+    };
+    const up2=()=>{ removeEventListener('pointermove',mv); removeEventListener('pointerup',up2);
+      hud.remove(); raster.forEach(d=>d.remove()); vlijn.remove(); clearGuides();
+      draw(true); commit(); drawInsp(); };
+    addEventListener('pointermove',mv); addEventListener('pointerup',up2);
+    return;
+  }
+
+  let moved=false;
+  const watch=ev=>{ if(Math.abs(ev.clientX-e.clientX)>2||Math.abs(ev.clientY-e.clientY)>2) moved=true; };
+  const settle=()=>{
+    removeEventListener('pointermove',watch); removeEventListener('pointerup',settle);
+    if(!moved && itEl && itEl.dataset.sec){
+      sel=null; selItem={sec:itEl.dataset.sec, idx:+itEl.dataset.idx};
+      draw(true); drawInsp();
+    }
+  };
+  addEventListener('pointermove',watch); addEventListener('pointerup',settle);
+  if(!el){ sel=null; selItem=null; preview.querySelectorAll('.sel').forEach(n=>n.classList.remove('sel')); return drawInsp(); }
+  e.preventDefault();
+  if(sel!==el.dataset.el){ sel=el.dataset.el; selItem=null; mark(el); drawInsp(); }
+  const id=sel, g=L(id), k=mmPerPx();
+  const x0=e.clientX, y0=e.clientY;
+  const s0={l:g.l,t:g.t,w:g.w,h:g.h};
+  const mode=handle?'size':'move';
+  const page=el.closest('.page');
+  const cand=candidates(page,el);
+  const b0=boxOf(page,el);
+  const hud=hudMaak();
+  const move=ev=>{
+    const dx=(ev.clientX-x0)*k, dy=(ev.clientY-y0)*k, lines=[];
+    if(mode==='move'){
+      let L2=s0.l+dx, T2=s0.t+dy;
+      const sx=snapAxis(L2,b0.w,cand.X), sy=snapAxis(T2,b0.h,cand.Y);
+      if(sx){ L2=sx.v; lines.push({axis:'v',at:num(sx.line),edge:cand.edge.has(num(sx.line))}); }
+      if(sy){ T2=sy.v; lines.push({axis:'h',at:num(sy.line),edge:cand.edge.has(num(sy.line))}); }
+      set(id,'l',num(L2)); set(id,'t',num(T2));
+      el.style.left=L(id).l+'mm'; el.style.top=L(id).t+'mm';
+    }else{
+      let W2=Math.max(4,s0.w+dx), H2=Math.max(3,s0.h+dy);
+      if(snapOn){
+        for(const c of cand.X) if(Math.abs(s0.l+W2-c)<=TOL){ W2=c-s0.l; lines.push({axis:'v',at:num(c),edge:cand.edge.has(num(c))}); break; }
+        for(const c of cand.Y) if(Math.abs(s0.t+H2-c)<=TOL){ H2=c-s0.t; lines.push({axis:'h',at:num(c),edge:cand.edge.has(num(c))}); break; }
+      }
+      set(id,'w',num(W2)); set(id,'h',num(H2));
+      el.style.width=L(id).w+'mm'; el.style.height=L(id).h+'mm';
+    }
+    showGuides(page,lines);
+    const gg=L(id);
+    hudZet(hud, mode==='move' ? `X ${gg.l} · Y ${gg.t} mm` : `${gg.w} × ${gg.h} mm`, ev);
+    fillInsp();
+  };
+  const up=()=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up);
+    hud.remove(); clearGuides(); draw(); };
+  addEventListener('pointermove',move); addEventListener('pointerup',up);
+});
+
+addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); return e.shiftKey?redo():undo(); }
+  if(!editing||/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
+  if(e.key==='Escape'){ sel=null; selItem=null; draw(true); return drawInsp(); }
+  const d={ArrowLeft:['dx','l',-1],ArrowRight:['dx','l',1],
+           ArrowUp:['dy','t',-1],ArrowDown:['dy','t',1]}[e.key];
+  if(!d) return;
+  const stap=d[2]*(e.shiftKey?1:.25);
+  if(selItem){
+    e.preventDefault();
+    const it=m.s[selItem.sec][selItem.idx];
+    it[d[0]]=num((it[d[0]]||0)+stap);
+    draw(true); commit(); fillInsp();
+    return;
+  }
+  if(!sel) return;
+  e.preventDefault();
+  set(sel,d[1],num(L(sel)[d[1]]+stap));
+  draw(); fillInsp();
+});
+
+/* ---------- inspecteur ---------- */
+const FIELDS=[['l','X'],['t','Y'],['w','Breedte'],['h','Hoogte'],['pw','Prijskolom'],['fs','Korps (pt)']];
+const TYPEFLD=[['fsN','Titel (pt)'],['fsD','Omschrijving (pt)'],['fsP','Prijs (pt)']];
+
+function drawInsp(){
+  if(!editing || (!sel&&!selItem)){ insp.hidden=true; return; }
+  insp.hidden=false;
+  if(selItem) return inspItem();
+  $('iName').textContent=L(sel).lb||sel;
+  $('iSub').textContent='pagina '+sel.slice(1,2)+' · '+sel;
+  const g=L(sel);
+  let h=FIELDS.filter(([k])=>LAYOUT[sel][k]!=null)
+    .map(([k,lab])=>`<div class="fld"><label for="f_${k}">${lab}</label>
+      <input id="f_${k}" type="number" step="0.25" data-k="${k}" value="${g[k]}"></div>`).join('');
+  if(SECOF[sel]) h+=TYPEFLD.map(([k,lab])=>`<div class="fld"><label for="f_${k}">${lab}</label>
+      <input id="f_${k}" type="number" step="0.5" data-k="${k}" value="${g[k]??''}"
+      placeholder="${m.type.body}"></div>`).join('');
+  $('iFields').innerHTML=h;
+  $('iReset').textContent='Origineel';
+}
+
+function inspItem(){
+  const it=m.s[selItem.sec][selItem.idx];
+  $('iName').textContent=it.n||'Gerecht';
+  $('iSub').textContent=selItem.sec+' · nr '+(selItem.idx+1);
+  $('iFields').innerHTML=`
+    <div class="fld wide"><label for="i_n">Naam</label><input id="i_n" data-i="n" value="${esc(it.n)}"></div>
+    <div class="fld wide"><label for="i_d">Omschrijving</label><textarea id="i_d" data-i="d">${esc(it.d)}</textarea></div>
+    <div class="fld"><label for="i_p">Prijs</label><input id="i_p" data-i="p" value="${esc(it.p)}"></div>
+    <div class="fld"><label for="i_t">Titel (pt)</label><input id="i_t" type="number" step="0.5" data-i="fsN"
+        value="${it.fsN??''}" placeholder="${m.type.nm}"></div>
+    <div class="fld"><label for="i_o">Omschrijving (pt)</label><input id="i_o" type="number" step="0.5" data-i="fsD"
+        value="${it.fsD??''}" placeholder="${m.type.ds}"></div>
+    <div class="fld"><label for="i_x">Verschuif X</label><input id="i_x" type="number" step="0.25" data-i="dx" value="${it.dx??0}"></div>
+    <div class="fld"><label for="i_y">Verschuif Y</label><input id="i_y" type="number" step="0.25" data-i="dy" value="${it.dy??0}"></div>
+    <div class="fld"><label for="i_px">Prijs apart X</label><input id="i_px" type="number" step="0.25" data-i="px" value="${it.px??0}"></div>
+    <div class="fld"><label for="i_py">Prijs apart Y</label><input id="i_py" type="number" step="0.25" data-i="py" value="${it.py??0}"></div>
+    <div class="fld"><label>Dieet</label><div class="tags">${Object.keys(TAGS).map(t=>
+      `<button class="tag ${it.t.includes(t)?'on':''}" data-it="${t}" title="${TAGS[t]}" aria-label="${TAGS[t]}"></button>`).join('')}</div></div>`;
+  $('iReset').textContent='Terugzetten';
+}
+function fillInsp(){
+  if(insp.hidden) return;
+  const g=L(sel);
+  $('iFields').querySelectorAll('input').forEach(i=>{ if(document.activeElement!==i) i.value=g[i.dataset.k]; });
+}
+$('iFields').addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.i!==undefined && selItem){
+    const it=m.s[selItem.sec][selItem.idx], k=t.dataset.i;
+    if(['fsN','fsD','dx','dy','px','py'].includes(k)){
+      const v=parseFloat(t.value);
+      if(t.value==='') delete it[k]; else if(!isNaN(v)) it[k]=v;
+    }
+    else it[k]=t.value;
+    draw(true); commit(); drawForm();
+    return;
+  }
+  if(!sel) return;
+  const k=t.dataset.k;
+  if(t.value===''){ delete (m.layout[sel]||{})[k]; return draw(); }
+  const v=parseFloat(t.value); if(isNaN(v)) return;
+  set(sel,k,v); draw();
+});
+$('iFields').addEventListener('click',e=>{
+  const b=e.target.closest('[data-it]'); if(!b||!selItem) return;
+  const a=m.s[selItem.sec][selItem.idx].t, t=b.dataset.it;
+  a.includes(t)?a.splice(a.indexOf(t),1):a.push(t);
+  draw(); drawInsp(); drawForm();
+});
+$('iReset').onclick=()=>{
+  if(selItem){ const it=m.s[selItem.sec][selItem.idx];
+    for(const k of ['fsN','fsD','dx','dy','px','py']) delete it[k]; }
+  else if(sel){ delete m.layout[sel]; }
+  draw(); drawInsp();
+};
+$('iClose').onclick=()=>{ sel=null; selItem=null; draw(true); drawInsp(); };
+
+$('snap').onclick=e=>{ snapOn=!snapOn; e.target.classList.toggle('on',snapOn); };
+
+$('edit').onclick=e=>{
+  editing=!editing;
+  e.target.classList.toggle('on',editing);
+  e.target.textContent=editing?'Klaar met indeling':'Indeling bewerken';
+  document.body.classList.toggle('editing',editing);
+  if(!editing){ sel=null; selItem=null; draw(true); }
+  drawInsp();
+};
+
+/* ---------- formulier ---------- */
+function drawForm(){
+  let h=`<div class="sec"><header><h2>Het concept — pagina 2</h2></header>
+    <p class="hint">Zet "Indeling bewerken" aan om vlakken te verslepen. Pijltjes verplaatsen met 0,25 mm, met Shift 1 mm.</p>
+    <textarea class="big" data-text="concept">${esc(m.concept)}</textarea></div>`;
+  for(const [id,label] of SECTIONS){
+    h+=`<div class="sec"><header><h2>${label}</h2><span class="count">${m.s[id].length}</span>
+        <button class="mini" data-add="${id}">+ Gerecht</button></header>`;
+    m.s[id].forEach((it,i)=>{
+      h+=`<div class="row" draggable="true" data-s="${id}" data-i="${i}">
+        <div class="l1">
+          <span class="grab" title="Sleep om te ordenen">⠿</span>
+          <input data-f="n" data-s="${id}" data-i="${i}" value="${esc(it.n)}" placeholder="Naam gerecht">
+          <input class="price" data-f="p" data-s="${id}" data-i="${i}" value="${esc(it.p)}" placeholder="0,00">
+        </div>
+        <textarea data-f="d" data-s="${id}" data-i="${i}" placeholder="Omschrijving">${esc(it.d)}</textarea>
+        <div class="l2"><div class="tags">${Object.keys(TAGS).map(t=>
+          `<button class="tag ${it.t.includes(t)?'on':''}" data-t="${t}" data-s="${id}" data-i="${i}" title="${TAGS[t]}" aria-label="${TAGS[t]}"></button>`).join('')}</div>
+          <div class="rowtools">
+            <button class="mini ghost" data-mv="-1" data-s="${id}" data-i="${i}" title="Omhoog">↑</button>
+            <button class="mini ghost" data-mv="1" data-s="${id}" data-i="${i}" title="Omlaag">↓</button>
+            <button class="mini ghost" data-dup="1" data-s="${id}" data-i="${i}" title="Dupliceren">⧉</button>
+            <button class="mini ghost" data-del="1" data-s="${id}" data-i="${i}" title="Verwijderen">✕</button>
+          </div></div>
+        <div class="l2"><select data-mvsec data-s="${id}" data-i="${i}" aria-label="Verplaats naar andere sectie">
+          <option value="">Verplaats naar…</option>
+          ${SECTIONS.filter(([o])=>o!==id).map(([o,ol])=>`<option value="${o}">${ol}</option>`).join('')}
+        </select></div></div>`;
+    });
+    h+=`</div>`;
+  }
+  h+=`<div class="sec"><header><h2>Wist je dat? — pagina 7</h2></header>
+      <textarea class="big" data-text="wist">${esc(m.wist)}</textarea></div>
+      <div class="sec"><header><h2>Indeling</h2></header>
+      <button class="mini" id="resetAll">Alle vlakken terug naar de originele maatvoering</button></div>`;
+  form.innerHTML=h;
+}
+
+form.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.mvsec!==undefined && t.value){
+    const from=t.dataset.s, i=+t.dataset.i, to=t.value;
+    m.s[to].push(m.s[from].splice(i,1)[0]);
+    selItem=null; drawForm(); draw();
+  }
+});
+
+form.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.text){ m[t.dataset.text]=t.value; return draw(); }
+  if(t.dataset.f){ m.s[t.dataset.s][+t.dataset.i][t.dataset.f]=t.value; draw(); }
+});
+form.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.id==='resetAll'){ m.layout={}; return draw(); }
+  const s=b.dataset.s, i=+b.dataset.i;
+  if(b.dataset.add) m.s[b.dataset.add].push({n:'Nieuw gerecht',d:'',p:'0',t:[]});
+  else if(b.dataset.del) m.s[s].splice(i,1);
+  else if(b.dataset.dup) m.s[s].splice(i+1,0,structuredClone(m.s[s][i]));
+  else if(b.dataset.mv){ const j=i+(+b.dataset.mv); if(j<0||j>=m.s[s].length) return;
+    [m.s[s][i],m.s[s][j]]=[m.s[s][j],m.s[s][i]]; }
+  else if(b.dataset.t){ const a=m.s[s][i].t,t=b.dataset.t;
+    a.includes(t)?a.splice(a.indexOf(t),1):a.push(t); }
+  else return;
+  drawForm(); draw();
+});
+
+/* ---------- gerechten slepen om te ordenen ---------- */
+let dragFrom=null;
+form.addEventListener('dragstart',e=>{
+  const r=e.target.closest('.row'); if(!r) return;
+  dragFrom={s:r.dataset.s, i:+r.dataset.i};
+  r.classList.add('drag'); e.dataTransfer.effectAllowed='move';
+  try{ e.dataTransfer.setData('text/plain',''); }catch{}
+});
+form.addEventListener('dragend',()=>{
+  dragFrom=null;
+  form.querySelectorAll('.drag,.over').forEach(n=>n.classList.remove('drag','over'));
+});
+form.addEventListener('dragover',e=>{
+  const r=e.target.closest('.row'); if(!r||!dragFrom) return;
+  e.preventDefault();
+  form.querySelectorAll('.over').forEach(n=>n.classList.remove('over'));
+  r.classList.add('over');
+});
+form.addEventListener('drop',e=>{
+  const r=e.target.closest('.row'); if(!r||!dragFrom) return;
+  e.preventDefault();
+  const to={s:r.dataset.s, i:+r.dataset.i};
+  const it=m.s[dragFrom.s].splice(dragFrom.i,1)[0];
+  let j=to.i;
+  if(dragFrom.s===to.s && dragFrom.i<to.i) j--;
+  m.s[to.s].splice(j,0,it);
+  dragFrom=null; selItem=null; drawForm(); draw();
+});
+
+/* ---------- korps en zoom ---------- */
+function applyType(){
+  if(!m.type) m.type={};
+  const t=m.type;
+  if(t.body==null) t.body=16;
+  if(t.nm==null) t.nm=t.body;      /* oudere bestanden volgen de kadertekst */
+  if(t.ds==null) t.ds=t.body;
+  if(t.hd==null) t.hd=1;
+  if(!m.layout) m.layout={};
+  if(m.zoom==null) m.zoom=.85;
+  const kn=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
+  t.body=kn(t.body,8,24); t.nm=kn(t.nm,8,28); t.ds=kn(t.ds,7,24);
+  t.hd=kn(t.hd,.4,1.6); m.zoom=kn(m.zoom,.3,1.6);
+  const r=document.documentElement.style;
+  r.setProperty('--body',t.body+'pt');
+  r.setProperty('--lead',num(t.ds*1.2)+'pt');
+  r.setProperty('--fsN',t.nm+'pt');
+  r.setProperty('--fsD',t.ds+'pt');
+  r.setProperty('--hd',t.hd.toFixed(2));
+  preview.style.zoom=m.zoom;
+  applyPrint();
+  const toon=v=>v.toFixed(v%1?1:0);
+  $('szBody').textContent=toon(t.body);
+  $('szNm').textContent=toon(t.nm);
+  $('szDs').textContent=toon(t.ds);
+  $('szHd').textContent=Math.round(t.hd*100)+'%';
+  $('szZoom').textContent=Math.round(m.zoom*100)+'%';
+}
+document.querySelector('.bar').addEventListener('click',e=>{
+  const b=e.target.closest('[data-sz],[data-zm]'); if(!b) return;
+  if(b.dataset.zm) m.zoom+=parseFloat(b.dataset.zm);
+  else m.type[b.dataset.sz]+=parseFloat(b.dataset.d);
+  applyType();
+});
+
+$('undo').onclick=undo;
+$('redo').onclick=redo;
+
+document.getElementById('pdf').onclick=async()=>{
+  if(!SERVED){ say('PDF maken kan alleen via de server','err'); return; }
+  say('Eerst bewaren…','busy'); lastSaved=''; await push();
+  say('PDF maken…','busy');
+  try{
+    const r=await fetch('/api/pdf',{method:'POST'});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.fout||'onbekend');
+    say('PDF klaar: '+d.pad,'ok');
+  }catch(e){ say('PDF mislukt: '+e.message,'err'); }
+};
+
+addEventListener('beforeprint',()=>{ preview.style.zoom=1; });
+addEventListener('afterprint',()=>{ preview.style.zoom=m.zoom; });
+$('print').onclick=()=>{ preview.style.zoom=1; setTimeout(()=>{ window.print(); preview.style.zoom=m.zoom; },60); };
+$('save').onclick=()=>{
+  const d=new Date(), st=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(m,null,2)],{type:'application/json'}));
+  a.download=`tafelaar-menu-${st}.json`; a.click(); URL.revokeObjectURL(a.href);
+};
+$('load').onclick=()=>$('file').click();
+$('file').onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{ m=JSON.parse(await f.text()); applyType(); drawForm(); draw(); }
+  catch{ alert('Dit bestand kon niet gelezen worden. Kies een bestand dat met "Bewaar" is gemaakt.'); }
+  e.target.value='';
+};
+
+/* ---------- automatisch bewaren (alleen als het via de server draait) ---------- */
+const SERVED = location.protocol.startsWith('http');
+const status=$('status');
+let saveTimer=null, lastSaved='';
+
+function say(txt,cls){ status.hidden=false; status.textContent=txt; status.className='status '+(cls||''); }
+
+async function pull(){
+  if(!SERVED) return;
+  try{
+    const r=await fetch('/api/menu');
+    if(!r.ok) throw 0;
+    const d=await r.json();
+    if(d && d.s){ m=d; lastSaved=JSON.stringify(m); }
+    say('Geladen','ok');
+  }catch{ say('Nieuw document','ok'); }
+}
+async function push(){
+  if(!SERVED) return;
+  const body=JSON.stringify(m);
+  if(body===lastSaved) return;
+  say('Bewaren…','busy');
+  try{
+    const r=await fetch('/api/menu',{method:'POST',headers:{'Content-Type':'application/json'},body});
+    if(!r.ok) throw 0;
+    lastSaved=body;
+    say('Bewaard om '+new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}),'ok');
+  }catch{ say('Bewaren mislukt','err'); }
+}
+function autosave(){ if(!SERVED) return; clearTimeout(saveTimer); saveTimer=setTimeout(push,700); }
+
+/* elke wijziging in het model plant een bewaaractie */
+const _draw=draw;
+draw=function(){ _draw.apply(this,arguments); autosave(); };
+addEventListener('beforeunload',()=>{ if(SERVED&&JSON.stringify(m)!==lastSaved) navigator.sendBeacon('/api/menu',JSON.stringify(m)); });
+
+(async()=>{ await pull(); applyType(); drawForm(); _draw();
+  past=[snap()]; refreshHist();
+  if(SERVED) lastSaved=JSON.stringify(m); })();
+</script>
