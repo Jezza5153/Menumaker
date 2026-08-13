@@ -32,6 +32,21 @@ def voor_vercel(s):
         "      if(k){ localStorage.setItem('tafelaar-key',k); return push(); }\n"
         "      return say('Geen sleutel, niet bewaard','err'); }\n"
         "    if(!r.ok) throw 0;\n    lastSaved=body;", 1)
+    # terugval op de browser als er op de server geen opslag is ingesteld
+    s = s.replace(
+        "  }catch{ say('Nieuw document','ok'); }\n}",
+        "  }catch{}\n"
+        "  const b=localStorage.getItem('tafelaar-menu');\n"
+        "  if(b){ try{ const d=JSON.parse(b);\n"
+        "    if(d&&d.s){ m=d; lastSaved=b; return say('Geladen uit deze browser','ok'); } }catch{} }\n"
+        "  say('Nieuw document','ok');\n}", 1)
+    s = s.replace(
+        "  }catch{ say('Bewaren mislukt','err'); }\n}",
+        "  }catch{\n"
+        "    try{ localStorage.setItem('tafelaar-menu',body); lastSaved=body;\n"
+        "      say('Bewaard in deze browser','ok'); }\n"
+        "    catch{ say('Bewaren mislukt','err'); }\n  }\n}", 1)
+
     # de pdf-knop werkt alleen lokaal, want daar draait een browser
     s = s.replace("document.getElementById('pdf').onclick=async()=>{",
         "if(!['localhost','127.0.0.1'].includes(location.hostname))"
