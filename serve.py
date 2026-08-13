@@ -21,6 +21,18 @@ if cands:
 
 s = HTML.read_text(encoding='utf-8')
 
+def html_voor_mode():
+    # Chrome bepaalt het papierformaat bij het inlezen; javascript is te laat.
+    mode = 'a5'
+    try:
+        mode = json.loads(MENU.read_text('utf-8')).get('print', 'a5')
+    except Exception:
+        pass
+    regel = '@page{size:A4 landscape;margin:0}' if mode == 'a4' else '@page{size:A5;margin:0}'
+    oud = '<style id="pagerule">@page{size:A5;margin:0}</style>'
+    nieuw = '<style id="pagerule">' + regel + '</style>'
+    return s.replace(oud, nieuw, 1).encode('utf-8')
+
 BODY = s.encode('utf-8')
 lock = threading.Lock()
 
@@ -70,7 +82,7 @@ class H(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path in ('/', '/index.html'):
-            return self.send(200, BODY, 'text/html; charset=utf-8')
+            return self.send(200, html_voor_mode(), 'text/html; charset=utf-8')
         if self.path == '/api/menu':
             with lock:
                 if MENU.exists():

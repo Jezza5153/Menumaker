@@ -357,6 +357,7 @@ function naam(it){
   return kop+`<span class="nw">${staart}${dots(it.t)}</span>`;
 }
 const num=v=>Math.round(v*100)/100;
+const klem=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
 
 /* ---------- geschiedenis ---------- */
 let past=[], future=[], histTimer=null;
@@ -684,14 +685,14 @@ preview.addEventListener('pointerdown',e=>{
   const move=ev=>{
     const dx=(ev.clientX-x0)*k, dy=(ev.clientY-y0)*k, lines=[];
     if(mode==='move'){
-      let L2=s0.l+dx, T2=s0.t+dy;
+      let L2=klem(s0.l+dx, -b0.w+8, 148-8), T2=klem(s0.t+dy, -b0.h+8, 210-8);
       const sx=snapAxis(L2,b0.w,cand.X), sy=snapAxis(T2,b0.h,cand.Y);
       if(sx){ L2=sx.v; lines.push({axis:'v',at:num(sx.line),edge:cand.edge.has(num(sx.line))}); }
       if(sy){ T2=sy.v; lines.push({axis:'h',at:num(sy.line),edge:cand.edge.has(num(sy.line))}); }
       set(id,'l',num(L2)); set(id,'t',num(T2));
       el.style.left=L(id).l+'mm'; el.style.top=L(id).t+'mm';
     }else{
-      let W2=Math.max(4,s0.w+dx), H2=Math.max(3,s0.h+dy);
+      let W2=klem(s0.w+dx,4,200), H2=klem(s0.h+dy,3,260);
       if(snapOn){
         for(const c of cand.X) if(Math.abs(s0.l+W2-c)<=TOL){ W2=c-s0.l; lines.push({axis:'v',at:num(c),edge:cand.edge.has(num(c))}); break; }
         for(const c of cand.Y) if(Math.abs(s0.t+H2-c)<=TOL){ H2=c-s0.t; lines.push({axis:'h',at:num(c),edge:cand.edge.has(num(c))}); break; }
@@ -792,7 +793,11 @@ $('iFields').addEventListener('input',e=>{
   const k=t.dataset.k;
   if(t.value===''){ delete (m.layout[sel]||{})[k]; return draw(); }
   const v=parseFloat(t.value); if(isNaN(v)) return;
-  set(sel,k,v); draw();
+  const g0=LAYOUT[sel]||{};
+  const grens={l:[-200,300], t:[-260,400], w:[2,300], h:[2,400],
+               pw:[2,120], fs:[4,120], fsN:[4,120], fsD:[4,120], fsP:[4,120]}[k];
+  set(sel, k, grens ? klem(v,grens[0],grens[1]) : v);
+  draw();
 });
 $('iFields').addEventListener('click',e=>{
   const b=e.target.closest('[data-it]'); if(!b||!selItem) return;
