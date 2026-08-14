@@ -71,10 +71,15 @@ button.ghost{background:transparent}
 .row textarea{resize:vertical;min-height:34px;line-height:1.35}
 .row .l2{display:flex;gap:7px;align-items:center;margin-top:6px}
 .tags{display:flex;gap:4px}
-.tag{width:22px;height:22px;border-radius:50%;border:1px solid var(--ui-line);cursor:pointer;padding:0;opacity:.28}
+.tag{width:22px;height:22px;border-radius:50%;border:1px solid var(--ui-line);cursor:pointer;padding:0;
+     opacity:.34;font:600 11px 'Inter',system-ui,sans-serif;color:#fff}
+.tag[data-t="g"],.tag[data-t="l"],.tag[data-it="g"],.tag[data-it="l"]{color:#2A2416}
 .tag:hover{opacity:.6}
 .tag.on{opacity:1;box-shadow:0 0 0 2px #4B3D52}
-.tag[data-t="v"]{background:var(--veg)}.tag[data-t="g"]{background:var(--glut)}.tag[data-t="l"]{background:var(--lact)}
+.tag[data-t="v"],.tag[data-it="v"]{background:var(--veg)}
+.tag[data-t="g"],.tag[data-it="g"]{background:var(--glut)}
+.tag[data-t="l"],.tag[data-it="l"]{background:var(--lact)}
+.dieet{font-size:11px;color:var(--ui-dim);min-width:104px}
 .rowtools{margin-left:auto;display:flex;gap:4px}
 textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;background:#100D13;color:var(--ui-text);
        border:1px solid var(--ui-line);border-radius:8px;padding:9px;min-height:120px}
@@ -137,7 +142,11 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
 .block .pr{font-size:var(--fsP,var(--body));line-height:1.2;text-align:center;align-self:start;z-index:1}
 .editing .it,.editing .pr{cursor:text}
 .it.selitem,.pr.selitem{outline:1.5px dashed var(--ui-accent);outline-offset:2px}
-.dot{width:2.6mm;height:2.6mm;border-radius:50%;display:inline-block;flex:none;vertical-align:baseline;transform:translateY(-.3mm)}
+.dot{width:2.6mm;height:2.6mm;border-radius:50%;display:inline-block;flex:none;position:relative;
+     vertical-align:baseline;transform:translateY(-.3mm)}
+.dot i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+       font:600 1.7mm/1 'Inter',system-ui,sans-serif;font-style:normal;letter-spacing:0}
+.dot.v i{color:#FFFFFF} .dot.g i{color:#3A3313} .dot.l i{color:#3A3313}
 .dot.v{background:var(--veg)}.dot.g{background:var(--glut)}.dot.l{background:var(--lact)}
 
 .boxed{position:absolute;border:.75mm solid var(--line);display:flex;align-items:center;justify-content:center;
@@ -391,7 +400,9 @@ const $=id=>document.getElementById(id);
 const form=$('form'), preview=$('preview'), insp=$('insp');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const nl=s=>esc(s).replace(/\n/g,'<br>');
-const dots=t=>t.map(x=>`<span class="dot ${x}"></span>`).join('');
+const LET={v:'V',g:'G',l:'L'};
+const dots=t=>t.map(x=>
+  `<span class="dot ${x}" title="${TAGS[x]}">${m.letters?`<i>${LET[x]}</i>`:''}</span>`).join('');
 
 /* de bolletjes horen bij het laatste woord: samen afbreken, nooit los */
 function naam(it){
@@ -562,7 +573,8 @@ function draw(skipHist){
   ${block('p3.blkBor',m.s.borrel,'dark',15.6)}
   <div class="vtab" data-el="p3.vtabBor" style="${geo('p3.vtabBor')}">BORREL</div>
   <div class="legend" data-el="p3.legend" style="${geo('p3.legend')}">
-    ${Object.entries(TAGS).map(([k,v])=>`<div><span class="dot ${k}"></span>${v}</div>`).join('')}
+    ${Object.entries(TAGS).map(([k,v])=>
+      `<div><span class="dot ${k}" title="${v}">${m.letters?`<i>${LET[k]}</i>`:''}</span>${v}</div>`).join('')}
   </div>
 </div>
 
@@ -901,7 +913,7 @@ function inspItem(){
     <div class="fld"><label for="i_px">Prijs apart X</label><input id="i_px" type="number" step="0.25" data-i="px" value="${it.px??0}"></div>
     <div class="fld"><label for="i_py">Prijs apart Y</label><input id="i_py" type="number" step="0.25" data-i="py" value="${it.py??0}"></div>
     <div class="fld"><label>Dieet</label><div class="tags">${Object.keys(TAGS).map(t=>
-      `<button class="tag ${it.t.includes(t)?'on':''}" data-it="${t}" title="${TAGS[t]}" aria-label="${TAGS[t]}"></button>`).join('')}</div></div>`;
+      `<button class="tag ${it.t.includes(t)?'on':''}" data-it="${t}" title="${TAGS[t]}" aria-label="${TAGS[t]}">${LET[t]}</button>`).join('')}</div></div>`;
   $('iReset').textContent='Terugzetten';
 }
 function fillInsp(){
@@ -997,8 +1009,9 @@ function drawForm(){
           <input class="price" data-f="p" data-s="${id}" data-i="${i}" value="${esc(it.p)}" placeholder="0,00">
         </div>
         <textarea data-f="d" data-s="${id}" data-i="${i}" placeholder="Omschrijving">${esc(it.d)}</textarea>
-        <div class="l2"><div class="tags">${Object.keys(TAGS).map(t=>
-          `<button class="tag ${it.t.includes(t)?'on':''}" data-t="${t}" data-s="${id}" data-i="${i}" title="${TAGS[t]}" aria-label="${TAGS[t]}"></button>`).join('')}</div>
+        <div class="l2"><span class="dieet">${it.t.length?it.t.map(x=>TAGS[x]).join(' · '):'geen dieetwens'}</span>
+          <div class="tags">${Object.keys(TAGS).map(t=>
+          `<button class="tag ${it.t.includes(t)?'on':''}" data-t="${t}" data-s="${id}" data-i="${i}" title="${TAGS[t]}" aria-label="${TAGS[t]}">${LET[t]}</button>`).join('')}</div>
           <div class="rowtools">
             <button class="mini ghost" data-mv="-1" data-s="${id}" data-i="${i}" title="Omhoog">↑</button>
             <button class="mini ghost" data-mv="1" data-s="${id}" data-i="${i}" title="Omlaag">↓</button>
@@ -1015,7 +1028,9 @@ function drawForm(){
   if(m.soort!=='lunch')
     h+=`<div class="sec"><header><h2>Wist je dat? — pagina 7</h2></header>
       <textarea class="big" data-text="wist">${esc(m.wist)}</textarea></div>`;
-  h+=`<div class="sec"><header><h2>Indeling</h2></header>
+  h+=`<div class="sec"><header><h2>Weergave</h2></header>
+      <p class="hint">Letters in de bolletjes helpen ook je gasten: V vegetarisch, G glutenvrij, L lactosevrij.</p>
+      <button class="mini" id="letters">Letters in bolletjes: ${m.letters?'aan':'uit'}</button>
       <button class="mini" id="resetAll">Alle vlakken terug naar de originele maatvoering</button></div>`;
   form.innerHTML=h;
 }
@@ -1067,6 +1082,7 @@ form.addEventListener('input',e=>{
 form.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.id==='resetAll'){ m.layout={}; return draw(); }
+  if(b.id==='letters'){ m.letters=!m.letters; drawForm(); return draw(); }
 
   if(b.id==='blokErbij'){
     const id='b'+Date.now().toString(36);
