@@ -146,6 +146,9 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
         line-height:var(--lead);padding:3mm;display:flex;flex-direction:column;justify-content:space-around}
 .legend div{display:flex;align-items:center;gap:2.4mm}
 .legend .dot{width:3.4mm;height:3.4mm}
+.subk{position:absolute;font-family:'Sorts Mill Goudy',Georgia,serif;font-style:italic;
+      line-height:1.25;white-space:pre-wrap}
+.subk.burg{color:var(--burg)} .subk.ink{color:var(--ink-hd)} .subk.fill{color:var(--paper)}
 .vtab{position:absolute;writing-mode:vertical-rl;transform:rotate(180deg);font-family:'Bevan',serif;
       color:transparent;-webkit-text-stroke:.35mm var(--paper);line-height:1}
 
@@ -295,6 +298,7 @@ const LAYOUT={
  'lu.frame'  :{lb:'Kader',           l:3.89, t:5.16,  w:140.21,h:198.29},
  'lu.bar'    :{lb:'Balk titel',      l:5.16, t:9.5,   w:62,    h:19.05},
  'lu.hdT'    :{lb:'Kop titel',       l:7.6,  t:12.4,  fs:36},
+ 'lu.subT'   :{lb:'Ondertitel titel', l:5.16, t:30,  w:80, fs:13},
  'lu.hd1'    :{lb:'Kop links boven', l:6,    t:34,    fs:29},
  'lu.blk1'   :{lb:'Blok links boven',l:3.98, t:46,    w:66.5,  h:70, pw:15},
  'lu.hd2'    :{lb:'Kop links onder', l:6,    t:122,   fs:29},
@@ -431,16 +435,17 @@ function refreshHist(){
 
 /* standaardmaten voor blokken die je zelf toevoegt */
 const LU_STD={
-  h:{lb:'Kop',  l:6,    t:34, fs:29},
-  b:{lb:'Blok', l:3.98, t:46, w:66.5, h:60, pw:15}
+  h:{lb:'Kop',        l:6,    t:34, fs:29},
+  s:{lb:'Ondertitel', l:6,    t:45, w:60, fs:12},
+  b:{lb:'Blok',       l:3.98, t:46, w:66.5, h:60, pw:15}
 };
 function BASE(id){
   if(LAYOUT[id]) return LAYOUT[id];
-  const t=/^lu\.(h|b)\.(.+)$/.exec(id||'');
+  const t=/^lu\.(h|s|b)\.(.+)$/.exec(id||'');
   if(!t) return {};
   const blok=(m.blokken||[]).find(x=>x.id===t[2]);
-  return Object.assign({}, LU_STD[t[1]],
-    {lb:(t[1]==='h'?'Kop ':'Blok ')+((blok&&blok.kop)||t[2])});
+  const naam={h:'Kop ',s:'Ondertitel ',b:'Blok '}[t[1]];
+  return Object.assign({}, LU_STD[t[1]], {lb:naam+((blok&&blok.kop)||t[2])});
 }
 function secOf(id){
   if(SECOF[id]) return SECOF[id];
@@ -450,6 +455,12 @@ function secOf(id){
 
 /* geometrie van een element: gemeten waarde, eventueel overschreven */
 function L(id){ return Object.assign({},BASE(id),(m.layout||{})[id]||{}); }
+function geo2(id){
+  const g=L(id); let s=`left:${g.l}mm;top:${g.t}mm;`;
+  if(g.w!=null) s+=`width:${g.w}mm;`;
+  if(g.fs!=null) s+=`font-size:${g.fs}pt;`;
+  return s;
+}
 function geo(id){
   const g=L(id); let s=`left:${g.l}mm;top:${g.t}mm;`;
   if(g.w!=null) s+=`width:${g.w}mm;`;
@@ -512,9 +523,12 @@ function tekenLunch(){
   <div class="frame" data-el="lu.frame" style="${geo('lu.frame')}"></div>
   <div class="bar-burg" data-el="lu.bar" style="${geo('lu.bar')}"></div>
   <div class="hd outline" data-el="lu.hdT" style="${geo('lu.hdT')}">${esc(kop('titel'))}</div>
+  ${kop('titelsub')?`<div class="subk ink" data-el="lu.subT" style="${geo2('lu.subT')}">${nl(kop('titelsub'))}</div>`:''}
   ${(m.blokken||[]).map(b=>
     `<div class="hd ${b.thema==='light'?'ink':'burg'}" data-el="lu.h.${b.id}"
        style="${geo('lu.h.'+b.id)}">${esc(b.kop||'')}</div>`+
+    (b.sub?`<div class="subk ${b.thema==='light'?'ink':'burg'}" data-el="lu.s.${b.id}"
+       style="${geo2('lu.s.'+b.id)}">${nl(b.sub)}</div>`:'')+
     block('lu.b.'+b.id, m.s[b.id]||[], b.thema==='light'?'light':'dark')).join('')}
 </div>`;
 }
@@ -955,13 +969,17 @@ function drawForm(){
         <span class="count">${(m.blokken||[]).length}</span>
         <button class="mini" id="blokErbij">+ Blok</button></header>
       <p class="hint">Zet "Indeling bewerken" aan om vlakken te verslepen. Pijltjes verplaatsen met 0,25 mm, met Shift 1 mm.</p>
-      <div class="row"><div class="l1">
-        <input data-kop="titel" value="${esc(kop('titel'))}" placeholder="Titel bovenaan"></div></div>
-      ${(m.blokken||[]).map(b=>`<div class="row"><div class="l1">
-        <input data-blokkop="${b.id}" value="${esc(b.kop||'')}" placeholder="Kop van dit blok">
-        <button class="mini ghost" data-blokthema="${b.id}" title="Donker of licht vlak">${b.thema==='light'?'licht':'donker'}</button>
-        <button class="mini ghost" data-blokweg="${b.id}" title="Blok verwijderen">✕</button>
-      </div></div>`).join('')}
+      <div class="row">
+        <div class="l1"><input data-kop="titel" value="${esc(kop('titel'))}" placeholder="Titel bovenaan"></div>
+        <input data-kop="titelsub" value="${esc(kop('titelsub'))}" placeholder="Ondertitel (optioneel)"></div>
+      ${(m.blokken||[]).map(b=>`<div class="row">
+        <div class="l1">
+          <input data-blokkop="${b.id}" value="${esc(b.kop||'')}" placeholder="Kop van dit blok">
+          <button class="mini ghost" data-blokthema="${b.id}" title="Donker of licht vlak">${b.thema==='light'?'licht':'donker'}</button>
+          <button class="mini ghost" data-blokweg="${b.id}" title="Blok verwijderen">✕</button>
+        </div>
+        <input data-bloksub="${b.id}" value="${esc(b.sub||'')}" placeholder="Ondertitel (optioneel)">
+      </div>`).join('')}
     </div>`;
   } else {
     h+=`<div class="sec"><header><h2>Het concept — pagina 2</h2></header>
@@ -1013,7 +1031,27 @@ form.addEventListener('change',e=>{
 
 form.addEventListener('input',e=>{
   const t=e.target;
-  if(t.dataset.kop!==undefined){ (m.koppen=m.koppen||{})[t.dataset.kop]=t.value; return draw(); }
+  if(t.dataset.kop!==undefined){
+    const k=t.dataset.kop, eerste=!kop(k);
+    (m.koppen=m.koppen||{})[k]=t.value;
+    if(k==='titelsub' && eerste && t.value && !(m.layout||{})['lu.subT']){
+      const h=L('lu.hdT');
+      (m.layout=m.layout||{})['lu.subT']={l:h.l-2.4, t:num(h.t+17), w:80, fs:13};
+    }
+    return draw();
+  }
+  if(t.dataset.bloksub!==undefined){
+    const id=t.dataset.bloksub;
+    const blok=(m.blokken||[]).find(x=>x.id===id);
+    if(!blok) return;
+    const eerste=!blok.sub;
+    blok.sub=t.value;
+    if(eerste && t.value){
+      const h=L('lu.h.'+id);
+      (m.layout=m.layout||{})['lu.s.'+id]={l:h.l, t:num(h.t+11), w:60, fs:12};
+    }
+    return draw();
+  }
   if(t.dataset.blokkop!==undefined){
     const id=t.dataset.blokkop;
     const blok=(m.blokken||[]).find(x=>x.id===id);
