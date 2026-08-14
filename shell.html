@@ -353,8 +353,14 @@ Nieuwsgierig naar de opties (catering of zaal)? Laat het even weten.`,
  }};
 
 const LUNCH={
- soort:'lunch', type:{body:16,nm:16,ds:16,hd:1}, zoom:.85, print:'a5', flip:'lang', layout:{},
- koppen:{titel:'LUNCH', k1:'BROODJES', k2:'WARM', k3:'ERBIJ'},
+ soort:'lunch', type:{body:16,nm:16,ds:16,hd:1}, zoom:.85, print:'a5', flip:'lang',
+ koppen:{titel:'LUNCH'},
+ blokken:[{id:'l1',kop:'BROODJES',thema:'dark'},
+          {id:'l2',kop:'WARM',thema:'dark'},
+          {id:'l3',kop:'ERBIJ',thema:'light'}],
+ layout:{'lu.h.l1':{l:6,t:34},   'lu.b.l1':{l:3.98,t:46,w:66.5,h:70,pw:15},
+         'lu.h.l2':{l:6,t:122},  'lu.b.l2':{l:3.98,t:134,w:66.5,h:66,pw:15},
+         'lu.h.l3':{l:76,t:34},  'lu.b.l3':{l:74,t:46,w:70.2,h:154,pw:15}},
  s:{
   l1:[{n:'Broodje Carpaccio',d:'Truffelmayonaise - Parmezaan',p:'11,50',t:[]},
       {n:'Broodje Gerookte Zalm',d:'Roomkaas - Citroen - Dille',p:'11,50',t:['g']},
@@ -389,6 +395,7 @@ function naam(it){
   return kop+`<span class="nw">${staart}${dots(it.t)}</span>`;
 }
 const num=v=>Math.round(v*100)/100;
+const klem=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
 
 /* ---------- geschiedenis ---------- */
 let past=[], future=[], histTimer=null;
@@ -418,8 +425,27 @@ function refreshHist(){
   $('redo').disabled=!future.length;
 }
 
+/* standaardmaten voor blokken die je zelf toevoegt */
+const LU_STD={
+  h:{lb:'Kop',  l:6,    t:34, fs:29},
+  b:{lb:'Blok', l:3.98, t:46, w:66.5, h:60, pw:15}
+};
+function BASE(id){
+  if(LAYOUT[id]) return LAYOUT[id];
+  const t=/^lu\.(h|b)\.(.+)$/.exec(id||'');
+  if(!t) return {};
+  const blok=(m.blokken||[]).find(x=>x.id===t[2]);
+  return Object.assign({}, LU_STD[t[1]],
+    {lb:(t[1]==='h'?'Kop ':'Blok ')+((blok&&blok.kop)||t[2])});
+}
+function secOf(id){
+  if(SECOF[id]) return SECOF[id];
+  const t=/^lu\.b\.(.+)$/.exec(id||'');
+  return t?t[1]:null;
+}
+
 /* geometrie van een element: gemeten waarde, eventueel overschreven */
-function L(id){ return Object.assign({},LAYOUT[id],(m.layout||{})[id]||{}); }
+function L(id){ return Object.assign({},BASE(id),(m.layout||{})[id]||{}); }
 function geo(id){
   const g=L(id); let s=`left:${g.l}mm;top:${g.t}mm;`;
   if(g.w!=null) s+=`width:${g.w}mm;`;
@@ -435,7 +461,7 @@ const SECOF={'lu.blk1':'l1','lu.blk2':'l2','lu.blk3':'l3','p2.blkArr':'arrangeme
   'p7.blkDes':'desserts'};
 
 function block(id,list,theme,extraPad){
-  const g=L(id), sec=SECOF[id];
+  const g=L(id), sec=secOf(id);
   const rows=list.map((it,i)=>{
     const selc = (selItem&&selItem.sec===sec&&selItem.idx===i)?' selitem':'';
     const nfs = it.fsN?`font-size:${it.fsN}pt;`:'';
@@ -461,18 +487,31 @@ function block(id,list,theme,extraPad){
 
 const kop=k=>((m.koppen||{})[k]||'');
 
+/* lunchkaarten met drie vaste blokken omzetten naar de losse opzet */
+function migreerLunch(){
+  if(m.soort!=='lunch' || m.blokken) return;
+  m.blokken=[{id:'l1',kop:kop('k1'),thema:'dark'},
+             {id:'l2',kop:kop('k2'),thema:'dark'},
+             {id:'l3',kop:kop('k3'),thema:'light'}];
+  m.layout=m.layout||{};
+  for(const [oud,nw] of [['lu.hd1','lu.h.l1'],['lu.blk1','lu.b.l1'],
+                         ['lu.hd2','lu.h.l2'],['lu.blk2','lu.b.l2'],
+                         ['lu.hd3','lu.h.l3'],['lu.blk3','lu.b.l3']]){
+    const g=Object.assign({},LAYOUT[oud],m.layout[oud]||{});
+    delete g.lb; m.layout[nw]=g; delete m.layout[oud];
+  }
+}
+
 function tekenLunch(){
   return `<div class="page"><span class="pagetag">lunchkaart</span>
   <div class="deco" data-el="lu.deco" style="${geo('lu.deco')}"></div>
   <div class="frame" data-el="lu.frame" style="${geo('lu.frame')}"></div>
   <div class="bar-burg" data-el="lu.bar" style="${geo('lu.bar')}"></div>
   <div class="hd outline" data-el="lu.hdT" style="${geo('lu.hdT')}">${esc(kop('titel'))}</div>
-  <div class="hd burg" data-el="lu.hd1" style="${geo('lu.hd1')}">${esc(kop('k1'))}</div>
-  ${block('lu.blk1',m.s.l1||[],'dark')}
-  <div class="hd burg" data-el="lu.hd2" style="${geo('lu.hd2')}">${esc(kop('k2'))}</div>
-  ${block('lu.blk2',m.s.l2||[],'dark')}
-  <div class="hd ink" data-el="lu.hd3" style="${geo('lu.hd3')}">${esc(kop('k3'))}</div>
-  ${block('lu.blk3',m.s.l3||[],'light')}
+  ${(m.blokken||[]).map(b=>
+    `<div class="hd ${b.thema==='light'?'ink':'burg'}" data-el="lu.h.${b.id}"
+       style="${geo('lu.h.'+b.id)}">${esc(b.kop||'')}</div>`+
+    block('lu.b.'+b.id, m.s[b.id]||[], b.thema==='light'?'light':'dark')).join('')}
 </div>`;
 }
 
@@ -759,14 +798,14 @@ preview.addEventListener('pointerdown',e=>{
   const move=ev=>{
     const dx=(ev.clientX-x0)*k, dy=(ev.clientY-y0)*k, lines=[];
     if(mode==='move'){
-      let L2=s0.l+dx, T2=s0.t+dy;
+      let L2=klem(s0.l+dx, -b0.w+8, 148-8), T2=klem(s0.t+dy, -b0.h+8, 210-8);
       const sx=snapAxis(L2,b0.w,cand.X), sy=snapAxis(T2,b0.h,cand.Y);
       if(sx){ L2=sx.v; lines.push({axis:'v',at:num(sx.line),edge:cand.edge.has(num(sx.line))}); }
       if(sy){ T2=sy.v; lines.push({axis:'h',at:num(sy.line),edge:cand.edge.has(num(sy.line))}); }
       set(id,'l',num(L2)); set(id,'t',num(T2));
       el.style.left=L(id).l+'mm'; el.style.top=L(id).t+'mm';
     }else{
-      let W2=Math.max(4,s0.w+dx), H2=Math.max(3,s0.h+dy);
+      let W2=klem(s0.w+dx,4,200), H2=klem(s0.h+dy,3,260);
       if(snapOn){
         for(const c of cand.X) if(Math.abs(s0.l+W2-c)<=TOL){ W2=c-s0.l; lines.push({axis:'v',at:num(c),edge:cand.edge.has(num(c))}); break; }
         for(const c of cand.Y) if(Math.abs(s0.t+H2-c)<=TOL){ H2=c-s0.t; lines.push({axis:'h',at:num(c),edge:cand.edge.has(num(c))}); break; }
@@ -816,10 +855,11 @@ function drawInsp(){
   $('iName').textContent=L(sel).lb||sel;
   $('iSub').textContent='pagina '+sel.slice(1,2)+' · '+sel;
   const g=L(sel);
-  let h=FIELDS.filter(([k])=>LAYOUT[sel][k]!=null)
+  const bas=BASE(sel);
+  let h=FIELDS.filter(([k])=>bas[k]!=null)
     .map(([k,lab])=>`<div class="fld"><label for="f_${k}">${lab}</label>
       <input id="f_${k}" type="number" step="0.25" data-k="${k}" value="${g[k]}"></div>`).join('');
-  if(SECOF[sel]) h+=TYPEFLD.map(([k,lab])=>`<div class="fld"><label for="f_${k}">${lab}</label>
+  if(secOf(sel)) h+=TYPEFLD.map(([k,lab])=>`<div class="fld"><label for="f_${k}">${lab}</label>
       <input id="f_${k}" type="number" step="0.5" data-k="${k}" value="${g[k]??''}"
       placeholder="${m.type.body}"></div>`).join('');
   $('iFields').innerHTML=h;
@@ -867,7 +907,10 @@ $('iFields').addEventListener('input',e=>{
   const k=t.dataset.k;
   if(t.value===''){ delete (m.layout[sel]||{})[k]; return draw(); }
   const v=parseFloat(t.value); if(isNaN(v)) return;
-  set(sel,k,v); draw();
+  const grens={l:[-200,300], t:[-260,400], w:[2,300], h:[2,400],
+               pw:[2,120], fs:[4,120], fsN:[4,120], fsD:[4,120], fsP:[4,120]}[k];
+  set(sel, k, grens ? klem(v,grens[0],grens[1]) : v);
+  draw();
 });
 $('iFields').addEventListener('click',e=>{
   const b=e.target.closest('[data-it]'); if(!b||!selItem) return;
@@ -897,20 +940,24 @@ $('edit').onclick=e=>{
 /* ---------- formulier ---------- */
 function secties(){
   if(m.soort==='lunch')
-    return [['l1',kop('k1')||'Blok links boven'],['l2',kop('k2')||'Blok links onder'],
-            ['l3',kop('k3')||'Blok rechts']];
+    return (m.blokken||[]).map((b,i)=>[b.id, b.kop||('Blok '+(i+1))]);
   return SECTIONS;
 }
 
 function drawForm(){
   let h='';
   if(m.soort==='lunch'){
-    h+=`<div class="sec"><header><h2>Koppen</h2></header>
+    h+=`<div class="sec"><header><h2>Blokken</h2>
+        <span class="count">${(m.blokken||[]).length}</span>
+        <button class="mini" id="blokErbij">+ Blok</button></header>
       <p class="hint">Zet "Indeling bewerken" aan om vlakken te verslepen. Pijltjes verplaatsen met 0,25 mm, met Shift 1 mm.</p>
-      <div class="row"><div class="l1"><input data-kop="titel" value="${esc(kop('titel'))}" placeholder="Titel"></div></div>
-      <div class="row"><div class="l1"><input data-kop="k1" value="${esc(kop('k1'))}" placeholder="Kop links boven"></div></div>
-      <div class="row"><div class="l1"><input data-kop="k2" value="${esc(kop('k2'))}" placeholder="Kop links onder"></div></div>
-      <div class="row"><div class="l1"><input data-kop="k3" value="${esc(kop('k3'))}" placeholder="Kop rechts"></div></div>
+      <div class="row"><div class="l1">
+        <input data-kop="titel" value="${esc(kop('titel'))}" placeholder="Titel bovenaan"></div></div>
+      ${(m.blokken||[]).map(b=>`<div class="row"><div class="l1">
+        <input data-blokkop="${b.id}" value="${esc(b.kop||'')}" placeholder="Kop van dit blok">
+        <button class="mini ghost" data-blokthema="${b.id}" title="Donker of licht vlak">${b.thema==='light'?'licht':'donker'}</button>
+        <button class="mini ghost" data-blokweg="${b.id}" title="Blok verwijderen">✕</button>
+      </div></div>`).join('')}
     </div>`;
   } else {
     h+=`<div class="sec"><header><h2>Het concept — pagina 2</h2></header>
@@ -963,12 +1010,41 @@ form.addEventListener('change',e=>{
 form.addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.kop!==undefined){ (m.koppen=m.koppen||{})[t.dataset.kop]=t.value; return draw(); }
+  if(t.dataset.blokkop!==undefined){
+    const blok=(m.blokken||[]).find(x=>x.id===t.dataset.blokkop);
+    if(blok) blok.kop=t.value;
+    return draw();
+  }
   if(t.dataset.text){ m[t.dataset.text]=t.value; return draw(); }
   if(t.dataset.f){ m.s[t.dataset.s][+t.dataset.i][t.dataset.f]=t.value; draw(); }
 });
 form.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.id==='resetAll'){ m.layout={}; return draw(); }
+
+  if(b.id==='blokErbij'){
+    const id='b'+Date.now().toString(36);
+    const n=(m.blokken=m.blokken||[]).length;
+    m.blokken.push({id,kop:'NIEUWE KOP',thema:'dark'});
+    m.s[id]=[{n:'Nieuw gerecht',d:'',p:'0',t:[]}];
+    m.layout=m.layout||{};
+    m.layout['lu.h.'+id]={l:klem(6+n*4,4,120),  t:klem(34+n*8,8,190)};
+    m.layout['lu.b.'+id]={l:klem(3.98+n*4,2,120), t:klem(46+n*8,10,195), w:66.5, h:50, pw:15};
+    drawForm(); return draw();
+  }
+  if(b.dataset.blokweg){
+    const id=b.dataset.blokweg;
+    m.blokken=m.blokken.filter(x=>x.id!==id);
+    delete m.s[id];
+    delete (m.layout||{})['lu.h.'+id]; delete (m.layout||{})['lu.b.'+id];
+    if(selItem&&selItem.sec===id) selItem=null;
+    drawForm(); return draw();
+  }
+  if(b.dataset.blokthema){
+    const blok=m.blokken.find(x=>x.id===b.dataset.blokthema);
+    blok.thema = blok.thema==='light'?'dark':'light';
+    drawForm(); return draw();
+  }
   const s=b.dataset.s, i=+b.dataset.i;
   if(b.dataset.add) m.s[b.dataset.add].push({n:'Nieuw gerecht',d:'',p:'0',t:[]});
   else if(b.dataset.del) m.s[s].splice(i,1);
@@ -1012,6 +1088,7 @@ form.addEventListener('drop',e=>{
 
 /* ---------- korps en zoom ---------- */
 function applyType(){
+  migreerLunch();
   if(!m.type) m.type={};
   const t=m.type;
   if(t.body==null) t.body=16;
