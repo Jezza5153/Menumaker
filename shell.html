@@ -155,6 +155,8 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
 .legend{position:absolute;background:var(--burg);color:var(--paper);font-size:calc(var(--body)*.875);
         line-height:var(--lead);padding:3mm;display:flex;flex-direction:column;justify-content:space-around}
 .legend div{display:flex;align-items:center;gap:2.4mm}
+.legend .legnoot{display:block;font-size:calc(var(--body)*.75);line-height:1.25;
+                 margin-top:1.6mm;opacity:.95}
 .legend .dot{width:3.4mm;height:3.4mm}
 .subk{position:absolute;font-family:'Sorts Mill Goudy',Georgia,serif;font-style:italic;
       line-height:1.25;white-space:pre-wrap}
@@ -580,6 +582,7 @@ function draw(skipHist){
   <div class="legend" data-el="p3.legend" style="${geo('p3.legend')}">
     ${Object.entries(TAGS).map(([k,v])=>
       `<div><span class="dot ${k}" data-naam="${v}" aria-label="${v}">${m.letters?`<i>${LET[k]}</i>`:''}</span>${v}</div>`).join('')}
+    ${m.legenda?`<div class="legnoot">${nl(m.legenda)}</div>`:''}
   </div>
 </div>
 
@@ -1054,6 +1057,11 @@ function drawForm(){
   if(m.soort!=='lunch')
     h+=`<div class="sec"><header><h2>Wist je dat? — pagina 7</h2></header>
       <textarea class="big" data-text="wist">${esc(m.wist)}</textarea></div>`;
+  if(m.soort!=='lunch')
+    h+=`<div class="sec"><header><h2>Legenda — pagina 3</h2></header>
+      <p class="hint">Extra regel onder de dieetbolletjes, bijvoorbeeld een toeslag.</p>
+      <div class="row"><div class="l1"><input data-text="legenda"
+        value="${esc(m.legenda||'')}" placeholder="bv. Glutenvrij brood 1,50 extra"></div></div></div>`;
   h+=`<div class="sec"><header><h2>Weergave</h2></header>
       <p class="hint">Letters in de bolletjes helpen ook je gasten: V vegetarisch, G glutenvrij, L lactosevrij.</p>
       <button class="mini" id="letters">Letters in bolletjes: ${m.letters?'aan':'uit'}</button>
