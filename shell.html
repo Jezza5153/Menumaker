@@ -41,8 +41,12 @@ button.ghost{background:transparent}
 .status.ok{color:#7BD8A8;border-color:#2F5B46}
 .status.busy{color:#E8C76A;border-color:#5B4B2A}
 .status.err{color:#F09A9A;border-color:#5B2F2F}
-#kaart{font-family:inherit;font-size:12.5px;background:#2E2633;color:var(--ui-text);
-       border:1px solid var(--ui-line);border-radius:7px;padding:6px 8px;max-width:170px}
+.tabs{display:inline-flex;align-items:center;gap:3px;background:#1B161F;
+      border:1px solid var(--ui-line);border-radius:9px;padding:3px}
+.tabs button{border:0;background:transparent;color:var(--ui-dim);padding:5px 11px;border-radius:6px}
+.tabs button:hover{background:#2E2633;color:var(--ui-text)}
+.tabs button.actief{background:var(--burg);color:#F6E8EF}
+.tabs button.plus{color:var(--ui-dim);font-size:15px;line-height:1;padding:4px 9px}
 .sizer{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ui-dim);
        border:1px solid var(--ui-line);border-radius:7px;padding:3px 6px}
 .sizer output{min-width:38px;text-align:center;color:var(--ui-text);font-variant-numeric:tabular-nums}
@@ -197,7 +201,7 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
       <button class="primary" id="pdf">PDF maken</button>
       <button id="save">Bewaar</button>
       <button id="load">Open</button>
-      <select id="kaart" aria-label="Kaart"></select>
+      <span class="tabs" id="kaart"></span>
       <button id="undo" title="Ongedaan maken (Cmd+Z)">↶</button>
       <button id="redo" title="Opnieuw (Cmd+Shift+Z)">↷</button>
       <button id="edit">Indeling bewerken</button>
@@ -1201,34 +1205,59 @@ const _draw=draw;
 draw=function(){ _draw.apply(this,arguments); autosave(); };
 addEventListener('beforeunload',()=>{ if(SERVED&&JSON.stringify(m)!==lastSaved) navigator.sendBeacon('/api/menu',JSON.stringify(m)); });
 
+let kaarten=['diner'];
+
 async function vulKaarten(){
   if(!SERVED) return $('kaart').hidden=true;
-  let lijst=['diner'];
-  try{ const r=await fetch('/api/kaarten'); if(r.ok) lijst=(await r.json()).kaarten||lijst; }catch{}
-  if(!lijst.includes(kaart)) lijst.push(kaart);
-  $('kaart').innerHTML = lijst.map(x=>`<option value="${esc(x)}"${x===kaart?' selected':''}>${esc(x)}</option>`).join('')
-    + '<option value="__lunch">＋ nieuwe lunchkaart</option>'
-    + '<option value="__diner">＋ nieuwe dinerkaart</option>';
+  try{ const r=await fetch('/api/kaarten'); if(r.ok) kaarten=(await r.json()).kaarten||kaarten; }catch{}
+  if(!kaarten.includes(kaart)) kaarten.push(kaart);
+  $('kaart').innerHTML = kaarten.map((x,i)=>
+      `<button data-ga="${esc(x)}" class="${x===kaart?'actief':''}" title="${esc(x)}  (⌘${i+1})">${esc(x)}</button>`).join('')
+    + '<button class="plus" data-nieuw="1" title="Nieuwe kaart">＋</button>';
 }
 
-$('kaart').onchange=async e=>{
-  const v=e.target.value;
-  await push();                                   /* huidige kaart eerst bewaren */
-  if(v==='__lunch'||v==='__diner'){
-    const ruw=prompt('Naam van de nieuwe kaart:', v==='__lunch'?'lunch':'diner-2');
-    const naam=(ruw||'').trim().toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-|-$/g,'');
-    if(!naam) return vulKaarten();
-    kaart=naam;
-    m=structuredClone(v==='__lunch'?LUNCH:DEFAULT);
-    lastSaved=''; await push();
-  } else {
-    kaart=v; lastSaved=''; await pull();
-  }
+async function ganaar(naam){
+  if(naam===kaart) return;
+  clearTimeout(saveTimer); await push();          /* huidige kaart eerst bewaren */
+  kaart=naam; lastSaved='';
+  await pull();
   localStorage.setItem('tafelaar-kaart',kaart);
-  past=[]; future=[];
-  applyType(); drawForm(); draw(true); past=[snap()]; refreshHist();
+  sel=null; selItem=null; past=[]; future=[];
+  applyType(); drawForm(); draw(true); past=[snap()]; refreshHist(); drawInsp();
   vulKaarten();
-};
+}
+
+async function nieuweKaart(){
+  const soort = confirm('Nieuwe kaart maken.\n\nOK = lunchkaart (één A5)\nAnnuleer = dinerkaart (acht pagina\'s)')
+    ? 'lunch' : 'diner';
+  const ruw = prompt('Naam van de nieuwe kaart:', soort==='lunch'?'lunch':'diner');
+  let naam=(ruw||'').trim().toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-|-$/g,'');
+  if(!naam) return;
+  if(kaarten.includes(naam)){
+    alert('Er bestaat al een kaart met de naam "'+naam+'". Kies een andere naam.');
+    return;
+  }
+  clearTimeout(saveTimer); await push();
+  kaart=naam; m=structuredClone(soort==='lunch'?LUNCH:DEFAULT); lastSaved='';
+  await push();
+  localStorage.setItem('tafelaar-kaart',kaart);
+  sel=null; selItem=null; past=[]; future=[];
+  applyType(); drawForm(); draw(true); past=[snap()]; refreshHist(); drawInsp();
+  vulKaarten();
+}
+
+$('kaart').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.nieuw) return nieuweKaart();
+  if(b.dataset.ga) return ganaar(b.dataset.ga);
+});
+
+addEventListener('keydown',e=>{
+  if(!(e.metaKey||e.ctrlKey) || e.shiftKey || e.altKey) return;
+  const nr=parseInt(e.key,10);
+  if(!nr || nr>kaarten.length) return;
+  e.preventDefault(); ganaar(kaarten[nr-1]);
+});
 
 (async()=>{ await pull(); await vulKaarten(); applyType(); drawForm(); _draw();
   past=[snap()]; refreshHist();
