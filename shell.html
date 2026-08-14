@@ -157,8 +157,8 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
 .legend{position:absolute;background:var(--burg);color:var(--paper);font-size:calc(var(--body)*.875);
         line-height:var(--lead);padding:3mm;display:flex;flex-direction:column;justify-content:space-around}
 .legend div{display:flex;align-items:center;gap:2.4mm}
-.legend .legnoot{display:block;font-size:calc(var(--body)*.75);line-height:1.25;
-                 margin-top:1.6mm;opacity:.95}
+.legend div{align-items:flex-start}
+.legend em{display:block;font-style:normal;font-size:.74em;line-height:1.2;opacity:.92}
 .legend .dot{width:3.4mm;height:3.4mm}
 .subk{position:absolute;font-family:'Sorts Mill Goudy',Georgia,serif;font-style:italic;
       line-height:1.25;white-space:pre-wrap}
@@ -410,8 +410,17 @@ const form=$('form'), preview=$('preview'), insp=$('insp');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const nl=s=>esc(s).replace(/\n/g,'<br>');
 const LET={v:'V',g:'G',l:'L',b:'B'};
+const legLabel=k=>((m.leg||{})[k]||{}).label || TAGS[k];
+const legExtra=k=>((m.leg||{})[k]||{}).extra || '';
+function legZet(k,veld,waarde){
+  m.leg=m.leg||{}; m.leg[k]=m.leg[k]||{}; m.leg[k][veld]=waarde;
+}
+function migreerLegenda(){
+  if(m.legenda && !legExtra('b')){ legZet('b','extra',m.legenda); }
+  if(m.legenda) delete m.legenda;
+}
 const dots=t=>t.map(x=>
-  `<span class="dot ${x}" data-naam="${TAGS[x]}" aria-label="${TAGS[x]}">${m.letters?`<i>${LET[x]}</i>`:''}</span>`).join('');
+  `<span class="dot ${x}" data-naam="${legLabel(x)}" aria-label="${legLabel(x)}">${m.letters?`<i>${LET[x]}</i>`:''}</span>`).join('');
 
 /* de bolletjes horen bij het laatste woord: samen afbreken, nooit los */
 function naam(it){
@@ -582,9 +591,9 @@ function draw(skipHist){
   ${block('p3.blkBor',m.s.borrel,'dark',15.6)}
   <div class="vtab" data-el="p3.vtabBor" style="${geo('p3.vtabBor')}">BORREL</div>
   <div class="legend" data-el="p3.legend" style="${geo('p3.legend')}">
-    ${Object.entries(TAGS).map(([k,v])=>
-      `<div><span class="dot ${k}" data-naam="${v}" aria-label="${v}">${m.letters?`<i>${LET[k]}</i>`:''}</span>${v}</div>`).join('')}
-    ${m.legenda?`<div class="legnoot">${nl(m.legenda)}</div>`:''}
+    ${Object.keys(TAGS).map(k=>
+      `<div><span class="dot ${k}" data-naam="${legLabel(k)}" aria-label="${legLabel(k)}">${m.letters?`<i>${LET[k]}</i>`:''}</span>`+
+      `<span>${esc(legLabel(k))}${legExtra(k)?`<em>${esc(legExtra(k))}</em>`:''}</span></div>`).join('')}
   </div>
 </div>
 
@@ -709,6 +718,7 @@ function candidates(page,skip,metGerechten){
   return {X,Y,edge};
 }
 
+/* uitleg bij een dieetbolletje, meteen zichtbaar */
 let tip=null, sleept=false;
 function tipToon(txt,ev){
   if(sleept) return;
@@ -1040,7 +1050,7 @@ function drawForm(){
           <input class="price" data-f="p" data-s="${id}" data-i="${i}" value="${esc(it.p)}" placeholder="0,00">
         </div>
         <textarea data-f="d" data-s="${id}" data-i="${i}" placeholder="Omschrijving">${esc(it.d)}</textarea>
-        <div class="l2"><span class="dieet">${it.t.length?it.t.map(x=>TAGS[x]).join(' · '):'geen dieetwens'}</span>
+        <div class="l2"><span class="dieet">${it.t.length?it.t.map(x=>legLabel(x)).join(' · '):'geen dieetwens'}</span>
           <div class="tags">${Object.keys(TAGS).map(t=>
           `<button class="tag ${it.t.includes(t)?'on':''}" data-t="${t}" data-s="${id}" data-i="${i}" title="${TAGS[t]}" aria-label="${TAGS[t]}">${LET[t]}</button>`).join('')}</div>
           <div class="rowtools">
@@ -1061,9 +1071,12 @@ function drawForm(){
       <textarea class="big" data-text="wist">${esc(m.wist)}</textarea></div>`;
   if(m.soort!=='lunch')
     h+=`<div class="sec"><header><h2>Legenda — pagina 3</h2></header>
-      <p class="hint">Extra regel onder de dieetbolletjes, bijvoorbeeld een toeslag.</p>
-      <div class="row"><div class="l1"><input data-text="legenda"
-        value="${esc(m.legenda||'')}" placeholder="bv. Glutenvrij brood 1,50 extra"></div></div></div>`;
+      <p class="hint">Naam en eventuele toelichting per bolletje.</p>
+      ${Object.keys(TAGS).map(k=>`<div class="row">
+        <div class="l1"><span class="dot ${k}" data-naam="${legLabel(k)}"></span>
+          <input data-leglabel="${k}" value="${esc(legLabel(k))}" placeholder="Naam"></div>
+        <input data-legextra="${k}" value="${esc(legExtra(k))}" placeholder="Toelichting, bv. 1,50 extra">
+      </div>`).join('')}</div>`;
   h+=`<div class="sec"><header><h2>Weergave</h2></header>
       <p class="hint">Letters in de bolletjes helpen ook je gasten: V vegetarisch, G glutenvrij, L lactosevrij.</p>
       <button class="mini" id="letters">Letters in bolletjes: ${m.letters?'aan':'uit'}</button>
@@ -1082,6 +1095,8 @@ form.addEventListener('change',e=>{
 
 form.addEventListener('input',e=>{
   const t=e.target;
+  if(t.dataset.leglabel!==undefined){ legZet(t.dataset.leglabel,'label',t.value); return draw(); }
+  if(t.dataset.legextra!==undefined){ legZet(t.dataset.legextra,'extra',t.value); return draw(); }
   if(t.dataset.kop!==undefined){
     const k=t.dataset.kop, eerste=!kop(k);
     (m.koppen=m.koppen||{})[k]=t.value;
@@ -1186,7 +1201,7 @@ form.addEventListener('drop',e=>{
 
 /* ---------- korps en zoom ---------- */
 function applyType(){
-  migreerLunch();
+  migreerLunch(); migreerLegenda();
   if(!m.type) m.type={};
   const t=m.type;
   if(t.body==null) t.body=16;
