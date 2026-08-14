@@ -68,6 +68,7 @@ button.ghost{background:transparent}
 .row input,.row textarea{font-family:inherit;font-size:13px;background:#100D13;color:var(--ui-text);
        border:1px solid var(--ui-line);border-radius:6px;padding:6px 8px;width:100%}
 .row input.price{width:74px;flex:none;text-align:right}
+.row input.kleur{width:34px;flex:none;padding:2px;height:32px;background:#100D13;cursor:pointer}
 .row textarea{resize:vertical;min-height:34px;line-height:1.35}
 .row .l2{display:flex;gap:7px;align-items:center;margin-top:6px}
 .tags{display:flex;gap:4px}
@@ -410,6 +411,14 @@ const form=$('form'), preview=$('preview'), insp=$('insp');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const nl=s=>esc(s).replace(/\n/g,'<br>');
 const LET={v:'V',g:'G',l:'L',b:'B'};
+const STDKLEUR={v:'#5D7A38',g:'#D8C54B',l:'#FBF9FB',b:'#C2703A'};
+const legKleur=k=>((m.leg||{})[k]||{}).kleur || STDKLEUR[k];
+function contrast(hex){
+  const h=(hex||'').replace('#','');
+  const v=h.length===3?h.split('').map(c=>c+c).join(''):h;
+  const r=parseInt(v.slice(0,2),16)||0, g=parseInt(v.slice(2,4),16)||0, b=parseInt(v.slice(4,6),16)||0;
+  return (0.299*r+0.587*g+0.114*b)>150 ? '#2A2416' : '#FFFFFF';
+}
 const legLabel=k=>((m.leg||{})[k]||{}).label || TAGS[k];
 const legExtra=k=>((m.leg||{})[k]||{}).extra || '';
 function legZet(k,veld,waarde){
@@ -420,7 +429,8 @@ function migreerLegenda(){
   if(m.legenda) delete m.legenda;
 }
 const dots=t=>t.map(x=>
-  `<span class="dot ${x}" data-naam="${legLabel(x)}" aria-label="${legLabel(x)}">${m.letters?`<i>${LET[x]}</i>`:''}</span>`).join('');
+  `<span class="dot ${x}" style="background:${legKleur(x)}" data-naam="${legLabel(x)}" aria-label="${legLabel(x)}">`+
+  `${m.letters?`<i style="color:${contrast(legKleur(x))}">${LET[x]}</i>`:''}</span>`).join('');
 
 /* de bolletjes horen bij het laatste woord: samen afbreken, nooit los */
 function naam(it){
@@ -592,7 +602,8 @@ function draw(skipHist){
   <div class="vtab" data-el="p3.vtabBor" style="${geo('p3.vtabBor')}">BORREL</div>
   <div class="legend" data-el="p3.legend" style="${geo('p3.legend')}">
     ${Object.keys(TAGS).map(k=>
-      `<div><span class="dot ${k}" data-naam="${legLabel(k)}" aria-label="${legLabel(k)}">${m.letters?`<i>${LET[k]}</i>`:''}</span>`+
+      `<div><span class="dot ${k}" style="background:${legKleur(k)}" data-naam="${legLabel(k)}" aria-label="${legLabel(k)}">`+
+      `${m.letters?`<i style="color:${contrast(legKleur(k))}">${LET[k]}</i>`:''}</span>`+
       `<span>${esc(legLabel(k))}${legExtra(k)?`<em>${esc(legExtra(k))}</em>`:''}</span></div>`).join('')}
   </div>
 </div>
@@ -954,7 +965,9 @@ function inspItem(){
     <div class="fld"><label for="i_px">Prijs apart X</label><input id="i_px" type="number" step="0.25" data-i="px" value="${it.px??0}"></div>
     <div class="fld"><label for="i_py">Prijs apart Y</label><input id="i_py" type="number" step="0.25" data-i="py" value="${it.py??0}"></div>
     <div class="fld"><label>Dieet</label><div class="tags">${Object.keys(TAGS).map(t=>
-      `<button class="tag ${it.t.includes(t)?'on':''}" data-it="${t}" title="${TAGS[t]}" aria-label="${TAGS[t]}">${LET[t]}</button>`).join('')}</div></div>`;
+      `<button class="tag ${it.t.includes(t)?'on':''}" data-it="${t}"
+        style="background:${legKleur(t)};color:${contrast(legKleur(t))}"
+        aria-label="${esc(legLabel(t))}" data-naam="${esc(legLabel(t))}">${LET[t]}</button>`).join('')}</div></div>`;
   $('iReset').textContent='Terugzetten';
 }
 function fillInsp(){
@@ -1052,7 +1065,9 @@ function drawForm(){
         <textarea data-f="d" data-s="${id}" data-i="${i}" placeholder="Omschrijving">${esc(it.d)}</textarea>
         <div class="l2"><span class="dieet">${it.t.length?it.t.map(x=>legLabel(x)).join(' · '):'geen dieetwens'}</span>
           <div class="tags">${Object.keys(TAGS).map(t=>
-          `<button class="tag ${it.t.includes(t)?'on':''}" data-t="${t}" data-s="${id}" data-i="${i}" title="${TAGS[t]}" aria-label="${TAGS[t]}">${LET[t]}</button>`).join('')}</div>
+          `<button class="tag ${it.t.includes(t)?'on':''}" data-t="${t}" data-s="${id}" data-i="${i}"
+             style="background:${legKleur(t)};color:${contrast(legKleur(t))}"
+             aria-label="${esc(legLabel(t))}" data-naam="${esc(legLabel(t))}">${LET[t]}</button>`).join('')}</div>
           <div class="rowtools">
             <button class="mini ghost" data-mv="-1" data-s="${id}" data-i="${i}" title="Omhoog">↑</button>
             <button class="mini ghost" data-mv="1" data-s="${id}" data-i="${i}" title="Omlaag">↓</button>
@@ -1073,8 +1088,11 @@ function drawForm(){
     h+=`<div class="sec"><header><h2>Legenda — pagina 3</h2></header>
       <p class="hint">Naam en eventuele toelichting per bolletje.</p>
       ${Object.keys(TAGS).map(k=>`<div class="row">
-        <div class="l1"><span class="dot ${k}" data-naam="${legLabel(k)}"></span>
-          <input data-leglabel="${k}" value="${esc(legLabel(k))}" placeholder="Naam"></div>
+        <div class="l1">
+          <input class="kleur" type="color" data-legkleur="${k}" value="${legKleur(k)}" aria-label="Kleur">
+          <input data-leglabel="${k}" value="${esc(legLabel(k))}" placeholder="Naam">
+          <button class="mini ghost" data-legterug="${k}" title="Terug naar standaard">↺</button>
+        </div>
         <input data-legextra="${k}" value="${esc(legExtra(k))}" placeholder="Toelichting, bv. 1,50 extra">
       </div>`).join('')}</div>`;
   h+=`<div class="sec"><header><h2>Weergave</h2></header>
@@ -1086,6 +1104,7 @@ function drawForm(){
 
 form.addEventListener('change',e=>{
   const t=e.target;
+  if(t.dataset.legkleur!==undefined){ drawForm(); return draw(); }
   if(t.dataset.mvsec!==undefined && t.value){
     const from=t.dataset.s, i=+t.dataset.i, to=t.value;
     m.s[to].push(m.s[from].splice(i,1)[0]);
@@ -1095,6 +1114,7 @@ form.addEventListener('change',e=>{
 
 form.addEventListener('input',e=>{
   const t=e.target;
+  if(t.dataset.legkleur!==undefined){ legZet(t.dataset.legkleur,'kleur',t.value); return draw(); }
   if(t.dataset.leglabel!==undefined){ legZet(t.dataset.leglabel,'label',t.value); return draw(); }
   if(t.dataset.legextra!==undefined){ legZet(t.dataset.legextra,'extra',t.value); return draw(); }
   if(t.dataset.kop!==undefined){
@@ -1134,6 +1154,7 @@ form.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.id==='resetAll'){ m.layout={}; return draw(); }
   if(b.id==='letters'){ m.letters=!m.letters; drawForm(); return draw(); }
+  if(b.dataset.legterug){ if(m.leg) delete m.leg[b.dataset.legterug]; drawForm(); return draw(); }
 
   if(b.id==='blokErbij'){
     const id='b'+Date.now().toString(36);
