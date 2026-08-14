@@ -144,6 +144,7 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
 .it.selitem,.pr.selitem{outline:1.5px dashed var(--ui-accent);outline-offset:2px}
 .dot{width:2.6mm;height:2.6mm;border-radius:50%;display:inline-block;flex:none;position:relative;
      vertical-align:baseline;transform:translateY(-.3mm)}
+.dot::before{content:'';position:absolute;inset:-2.2mm;border-radius:50%}
 .dot i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
        font:600 1.7mm/1 'Inter',system-ui,sans-serif;font-style:normal;letter-spacing:0}
 .dot.v i{color:#FFFFFF} .dot.g i{color:#3A3313} .dot.l i{color:#3A3313}
@@ -177,6 +178,10 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
 .rasterlijn.nul{background:#E8C76A}
 .rasterlijn.nul.aan{background:#E8C76A;box-shadow:0 0 0 .5px rgba(232,199,106,.5)}
 .raster-v{position:absolute;top:0;bottom:0;width:1px;z-index:40;pointer-events:none;background:#E8C76A}
+.tip{position:fixed;z-index:70;pointer-events:none;background:#F3ECEF;color:#20161C;
+     border-radius:6px;padding:4px 9px;font:600 12px 'Inter',system-ui,sans-serif;
+     box-shadow:0 4px 14px rgba(0,0,0,.45);white-space:nowrap}
+.tip[hidden]{display:none}
 .hud{position:fixed;z-index:60;pointer-events:none;background:#221C26;color:var(--ui-text);
      border:1px solid var(--ui-line);border-radius:7px;padding:4px 9px;
      font:11.5px 'Inter',system-ui,sans-serif;font-variant-numeric:tabular-nums;
@@ -402,7 +407,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const nl=s=>esc(s).replace(/\n/g,'<br>');
 const LET={v:'V',g:'G',l:'L'};
 const dots=t=>t.map(x=>
-  `<span class="dot ${x}" title="${TAGS[x]}">${m.letters?`<i>${LET[x]}</i>`:''}</span>`).join('');
+  `<span class="dot ${x}" data-naam="${TAGS[x]}" aria-label="${TAGS[x]}">${m.letters?`<i>${LET[x]}</i>`:''}</span>`).join('');
 
 /* de bolletjes horen bij het laatste woord: samen afbreken, nooit los */
 function naam(it){
@@ -574,7 +579,7 @@ function draw(skipHist){
   <div class="vtab" data-el="p3.vtabBor" style="${geo('p3.vtabBor')}">BORREL</div>
   <div class="legend" data-el="p3.legend" style="${geo('p3.legend')}">
     ${Object.entries(TAGS).map(([k,v])=>
-      `<div><span class="dot ${k}" title="${v}">${m.letters?`<i>${LET[k]}</i>`:''}</span>${v}</div>`).join('')}
+      `<div><span class="dot ${k}" data-naam="${v}" aria-label="${v}">${m.letters?`<i>${LET[k]}</i>`:''}</span>${v}</div>`).join('')}
   </div>
 </div>
 
@@ -699,6 +704,27 @@ function candidates(page,skip,metGerechten){
   return {X,Y,edge};
 }
 
+let tip=null, sleept=false;
+function tipToon(txt,ev){
+  if(sleept) return;
+  if(!tip){ tip=document.createElement('div'); tip.className='tip'; document.body.appendChild(tip); }
+  tip.textContent=txt; tip.hidden=false;
+  tip.style.left=(ev.clientX+14)+'px'; tip.style.top=(ev.clientY+16)+'px';
+}
+function tipWeg(){ if(tip) tip.hidden=true; }
+document.addEventListener('mouseover',e=>{
+  const d=e.target.closest && e.target.closest('.dot,.tag');
+  if(!d) return tipWeg();
+  tipToon(d.dataset.naam||d.getAttribute('aria-label')||'', e);
+});
+document.addEventListener('mousemove',e=>{
+  if(!tip||tip.hidden) return;
+  const d=e.target.closest && e.target.closest('.dot,.tag');
+  if(!d) return tipWeg();
+  tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY+16)+'px';
+});
+document.addEventListener('mouseleave',tipWeg,true);
+
 const mmTxt=v=>(v>0?'+':'')+v.toFixed(2).replace('.',',');
 function hudMaak(){ const d=document.createElement('div'); d.className='hud'; document.body.appendChild(d); return d; }
 function hudZet(d,txt,ev){ d.textContent=txt; d.style.left=(ev.clientX+16)+'px'; d.style.top=(ev.clientY+18)+'px'; }
@@ -763,7 +789,7 @@ preview.addEventListener('pointerdown',e=>{
     vlijn.className='raster-v'; vlijn.style.left=rustX+'mm'; vlijn.style.display='none';
     blok.appendChild(vlijn);
 
-    const hud=hudMaak();
+    const hud=hudMaak(); sleept=true; tipWeg();
     const zet=()=>{
       const dx=it.dx||0, dy=it.dy||0;
       txEl.style.transform=(dx||dy)?`translate(${dx}mm,${dy}mm)`:'';
@@ -798,7 +824,7 @@ preview.addEventListener('pointerdown',e=>{
       fillInsp();
     };
     const up2=()=>{ removeEventListener('pointermove',mv); removeEventListener('pointerup',up2);
-      hud.remove(); raster.forEach(d=>d.remove()); vlijn.remove(); clearGuides();
+      hud.remove(); raster.forEach(d=>d.remove()); vlijn.remove(); clearGuides(); sleept=false;
       draw(true); commit(); drawInsp(); };
     addEventListener('pointermove',mv); addEventListener('pointerup',up2);
     return;
