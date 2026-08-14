@@ -969,7 +969,7 @@ function drawForm(){
       <textarea class="big" data-text="concept">${esc(m.concept)}</textarea></div>`;
   }
   for(const [id,label] of secties()){
-    h+=`<div class="sec"><header><h2>${label}</h2><span class="count">${m.s[id].length}</span>
+    h+=`<div class="sec"><header><h2 id="sec-${id}">${label}</h2><span class="count">${m.s[id].length}</span>
         <button class="mini" data-add="${id}">+ Gerecht</button></header>`;
     m.s[id].forEach((it,i)=>{
       h+=`<div class="row" draggable="true" data-s="${id}" data-i="${i}">
@@ -1015,8 +1015,12 @@ form.addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.kop!==undefined){ (m.koppen=m.koppen||{})[t.dataset.kop]=t.value; return draw(); }
   if(t.dataset.blokkop!==undefined){
-    const blok=(m.blokken||[]).find(x=>x.id===t.dataset.blokkop);
+    const id=t.dataset.blokkop;
+    const blok=(m.blokken||[]).find(x=>x.id===id);
     if(blok) blok.kop=t.value;
+    const h2=document.getElementById('sec-'+id);          /* kop meteen bijwerken */
+    if(h2) h2.textContent=t.value||('Blok '+((m.blokken||[]).indexOf(blok)+1));
+    if(sel==='lu.h.'+id||sel==='lu.b.'+id) drawInsp();
     return draw();
   }
   if(t.dataset.text){ m[t.dataset.text]=t.value; return draw(); }
@@ -1183,7 +1187,19 @@ async function pull(){
     const d=await r.json();
     if(d && d.s){ m=d; lastSaved=JSON.stringify(m); }
     say('Geladen','ok');
-  }catch{ say('Nieuw document','ok'); }
+    return;
+  }catch{}
+  const kopie=localStorage.getItem('tafelaar-kopie-'+kaart);
+  if(kopie){
+    try{
+      const d=JSON.parse(kopie);
+      if(d && d.s && confirm('De server gaf niets terug voor "'+kaart+'".\n\n'
+        +'Er staat wel een kopie in deze browser. Die terugzetten?')){
+        m=d; lastSaved=''; say('Kopie uit de browser teruggezet','ok'); return;
+      }
+    }catch{}
+  }
+  say('Nieuw document','ok');
 }
 async function push(){
   if(!SERVED) return;
@@ -1195,15 +1211,48 @@ async function push(){
       {method:'POST',headers:{'Content-Type':'application/json'},body});
     if(!r.ok) throw 0;
     lastSaved=body;
+    spiegel();
     say('Bewaard om '+new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}),'ok');
-  }catch{ say('Bewaren mislukt','err'); }
+  }catch{
+    spiegel();
+    say('Bewaren mislukt — kopie staat in de browser','err');
+  }
 }
-function autosave(){ if(!SERVED) return; clearTimeout(saveTimer); saveTimer=setTimeout(push,700); }
+function autosave(){
+  if(!SERVED) return;
+  if(JSON.stringify(m)!==lastSaved) say('Nog niet bewaard','busy');
+  clearTimeout(saveTimer); saveTimer=setTimeout(push,700);
+}
 
 /* elke wijziging in het model plant een bewaaractie */
 const _draw=draw;
 draw=function(){ _draw.apply(this,arguments); autosave(); };
-addEventListener('beforeunload',()=>{ if(SERVED&&JSON.stringify(m)!==lastSaved) navigator.sendBeacon('/api/menu',JSON.stringify(m)); });
+function spiegel(){                       /* vangnet in de browser zelf */
+  try{ localStorage.setItem('tafelaar-kopie-'+kaart, JSON.stringify(m)); }catch{}
+}
+function bijSluiten(){
+  const b=JSON.stringify(m);
+  if(b===lastSaved) return;
+  spiegel();
+  if(SERVED) navigator.sendBeacon('/api/menu?kaart='+encodeURIComponent(kaart),
+    new Blob([b],{type:'application/json'}));
+}
+addEventListener('beforeunload', bijSluiten);
+addEventListener('pagehide', bijSluiten);
+
+/* wegklikken naar een ander venster of tabblad: eerst even wegschrijven */
+addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ clearTimeout(saveTimer); push(); } });
+addEventListener('blur',()=>{ clearTimeout(saveTimer); push(); });
+
+/* Cmd+S dwingt af */
+addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='s'){
+    e.preventDefault(); clearTimeout(saveTimer); push();
+  }
+});
+
+/* en om de twintig seconden een veiligheidsronde */
+setInterval(()=>{ if(JSON.stringify(m)!==lastSaved) push(); }, 20000);
 
 let kaarten=['diner'];
 
