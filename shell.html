@@ -11,7 +11,7 @@
 :root{
   --burg:#481723; --tan:#D6C19B; --wood:#BEA271; --mauve:#A38B91;
   --line:#5F3817; --ink:#231F20; --ink-hd:#110F0E; --paper:#FFFFFF;
-  --veg:#5D7A38; --glut:#D8C54B; --lact:#FBF9FB;
+  --veg:#5D7A38; --glut:#D8C54B; --lact:#FBF9FB; --brood:#C2703A;
   --body:16pt; --lead:19.2pt; --hd:1;
   --ui-bg:#17131A; --ui-panel:#221C26; --ui-line:#3A303F;
   --ui-text:#EDE6E9; --ui-dim:#A0929C; --ui-accent:#B98AA8;
@@ -79,6 +79,7 @@ button.ghost{background:transparent}
 .tag[data-t="v"],.tag[data-it="v"]{background:var(--veg)}
 .tag[data-t="g"],.tag[data-it="g"]{background:var(--glut)}
 .tag[data-t="l"],.tag[data-it="l"]{background:var(--lact)}
+.tag[data-t="b"],.tag[data-it="b"]{background:var(--brood)}
 .dieet{font-size:11px;color:var(--ui-dim);min-width:104px}
 .rowtools{margin-left:auto;display:flex;gap:4px}
 textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;background:#100D13;color:var(--ui-text);
@@ -147,8 +148,9 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
 .dot::before{content:'';position:absolute;inset:-2.2mm;border-radius:50%}
 .dot i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
        font:600 1.7mm/1 'Inter',system-ui,sans-serif;font-style:normal;letter-spacing:0}
-.dot.v i{color:#FFFFFF} .dot.g i{color:#3A3313} .dot.l i{color:#3A3313}
-.dot.v{background:var(--veg)}.dot.g{background:var(--glut)}.dot.l{background:var(--lact)}
+.dot.v i{color:#FFFFFF} .dot.g i{color:#3A3313} .dot.l i{color:#3A3313} .dot.b i{color:#FFFFFF}
+.dot.v{background:var(--veg)}.dot.g{background:var(--glut)}
+.dot.l{background:var(--lact)}.dot.b{background:var(--brood)}
 
 .boxed{position:absolute;border:.75mm solid var(--line);display:flex;align-items:center;justify-content:center;
        text-align:center;font-size:var(--body);line-height:var(--lead);padding:3mm;overflow:hidden}
@@ -262,7 +264,7 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
 <input type="file" id="file" accept="application/json" hidden>
 
 <script>
-const TAGS={v:'Vegetarisch',g:'Glutenvrij',l:'Lactosevrij'};
+const TAGS={v:'Vegetarisch',g:'Glutenvrij',l:'Lactosevrij',b:'Glutenvrij brood'};
 
 /* ====== gemeten maatvoering uit de originele PDF, in mm ====== */
 const LAYOUT={
@@ -407,7 +409,7 @@ const $=id=>document.getElementById(id);
 const form=$('form'), preview=$('preview'), insp=$('insp');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const nl=s=>esc(s).replace(/\n/g,'<br>');
-const LET={v:'V',g:'G',l:'L'};
+const LET={v:'V',g:'G',l:'L',b:'B'};
 const dots=t=>t.map(x=>
   `<span class="dot ${x}" data-naam="${TAGS[x]}" aria-label="${TAGS[x]}">${m.letters?`<i>${LET[x]}</i>`:''}</span>`).join('');
 
