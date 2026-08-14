@@ -20,6 +20,21 @@ if oud.exists() and not (KAARTEN / 'diner.json').exists():
     shutil.move(str(oud), str(KAARTEN / 'diner.json'))
     print('menu.json is nu kaarten/diner.json')
 
+INSTF = D / 'instellingen.json'
+
+# eenmalig: de dieetinstellingen uit een kaart halen en gedeeld opslaan
+if not INSTF.exists():
+    for f in sorted(KAARTEN.glob('*.json')):
+        try:
+            d = json.loads(f.read_text('utf-8'))
+        except Exception:
+            continue
+        if d.get('leg'):
+            INSTF.write_text(json.dumps({'leg': d['leg'], 'letters': bool(d.get('letters'))},
+                                        ensure_ascii=False, indent=2), 'utf-8')
+            print('dieetinstellingen overgenomen uit', f.stem)
+            break
+
 s = HTML.read_text(encoding='utf-8')
 lock = threading.Lock()
 VEILIG = re.compile(r'^[a-z0-9][a-z0-9-]{0,40}$')
@@ -57,6 +72,23 @@ BROWSERS = [
 ]
 
 
+def naar_voren(pad):
+    # steeds hetzelfde bestand openen: Voorvertoning ververst dan het venster
+    # dat al openstaat, in plaats van er elke keer een nieuw bij te maken
+    import time
+    dicht = ('tell application "Preview"\n'
+             '  repeat with w in (every window)\n'
+             '    if name of w is "' + pad.name + '" then close w\n'
+             '  end repeat\n'
+             'end tell')
+    subprocess.run(['osascript', '-e', dicht], capture_output=True)
+    time.sleep(0.3)
+    subprocess.run(['open', '-a', 'Preview', str(pad)], capture_output=True)
+    time.sleep(0.6)
+    subprocess.run(['osascript', '-e', 'tell application "Preview" to activate'],
+                   capture_output=True)
+
+
 def maak_pdf(naam):
     """Laat de browser buiten beeld printen: geen printvenster, geen schaling."""
     exe = next((b for b in BROWSERS if os.path.exists(b)), None)
@@ -75,7 +107,9 @@ def maak_pdf(naam):
         return None, (r.stderr.decode()[-200:] or 'lege pdf')
     for f in sorted((D / 'pdf').glob('*.pdf'))[:-30]:
         f.unlink(missing_ok=True)
-    subprocess.run(['open', str(uit)])
+    laatste = D / (naam + '-laatste.pdf')
+    shutil.copy2(uit, laatste)
+    naar_voren(laatste)
     return uit, None
 
 
@@ -97,6 +131,11 @@ class H(http.server.BaseHTTPRequestHandler):
         pad, naam = self.vraag()
         if pad in ('/', '/index.html'):
             return self.send(200, html_voor(naam), 'text/html; charset=utf-8')
+        if pad == '/api/instellingen':
+            with lock:
+                if INSTF.exists():
+                    return self.send(200, INSTF.read_bytes())
+            return self.send(404, b'{}')
         if pad == '/api/kaarten':
             return self.send(200, json.dumps({'kaarten': lijst()}).encode())
         if pad == '/api/menu':
@@ -123,6 +162,17 @@ class H(http.server.BaseHTTPRequestHandler):
             if fout:
                 return self.send(500, json.dumps({'fout': fout}).encode())
             return self.send(200, json.dumps({'ok': True, 'pad': uit.name}).encode())
+
+        if pad == '/api/instellingen':
+            try:
+                data = json.loads(raw)
+            except Exception:
+                return self.send(400, b'{}')
+            with lock:
+                tmp = INSTF.with_suffix('.tmp')
+                tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), 'utf-8')
+                tmp.replace(INSTF)
+            return self.send(200, b'{"ok":true}')
 
         if pad != '/api/menu':
             return self.send(404, b'{}')

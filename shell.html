@@ -412,25 +412,27 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const nl=s=>esc(s).replace(/\n/g,'<br>');
 const LET={v:'V',g:'G',l:'L',b:'B'};
 const STDKLEUR={v:'#5D7A38',g:'#D8C54B',l:'#FBF9FB',b:'#C2703A'};
-const legKleur=k=>((m.leg||{})[k]||{}).kleur || STDKLEUR[k];
+/* de dieetbolletjes gelden voor alle kaarten samen, niet per kaart */
+let INST={leg:{}, letters:false};
+const legKleur=k=>(INST.leg[k]||{}).kleur || STDKLEUR[k];
 function contrast(hex){
   const h=(hex||'').replace('#','');
   const v=h.length===3?h.split('').map(c=>c+c).join(''):h;
   const r=parseInt(v.slice(0,2),16)||0, g=parseInt(v.slice(2,4),16)||0, b=parseInt(v.slice(4,6),16)||0;
   return (0.299*r+0.587*g+0.114*b)>150 ? '#2A2416' : '#FFFFFF';
 }
-const legLabel=k=>((m.leg||{})[k]||{}).label || TAGS[k];
-const legExtra=k=>((m.leg||{})[k]||{}).extra || '';
+const legLabel=k=>(INST.leg[k]||{}).label || TAGS[k];
+const legExtra=k=>(INST.leg[k]||{}).extra || '';
 function legZet(k,veld,waarde){
-  m.leg=m.leg||{}; m.leg[k]=m.leg[k]||{}; m.leg[k][veld]=waarde;
+  INST.leg[k]=INST.leg[k]||{}; INST.leg[k][veld]=waarde; instBewaar();
 }
 function migreerLegenda(){
-  if(m.legenda && !legExtra('b')){ legZet('b','extra',m.legenda); }
-  if(m.legenda) delete m.legenda;
+  if(m.legenda && !legExtra('b')) legZet('b','extra',m.legenda);
+  delete m.legenda; delete m.leg; delete m.letters;   /* stond vroeger per kaart */
 }
 const dots=t=>t.map(x=>
   `<span class="dot ${x}" style="background:${legKleur(x)}" data-naam="${legLabel(x)}" aria-label="${legLabel(x)}">`+
-  `${m.letters?`<i style="color:${contrast(legKleur(x))}">${LET[x]}</i>`:''}</span>`).join('');
+  `${INST.letters?`<i style="color:${contrast(legKleur(x))}">${LET[x]}</i>`:''}</span>`).join('');
 
 /* de bolletjes horen bij het laatste woord: samen afbreken, nooit los */
 function naam(it){
@@ -605,7 +607,7 @@ function draw(skipHist){
   <div class="legend" data-el="p3.legend" style="${geo('p3.legend')}">
     ${Object.keys(TAGS).map(k=>
       `<div><span class="dot ${k}" style="background:${legKleur(k)}" data-naam="${legLabel(k)}" aria-label="${legLabel(k)}">`+
-      `${m.letters?`<i style="color:${contrast(legKleur(k))}">${LET[k]}</i>`:''}</span>`+
+      `${INST.letters?`<i style="color:${contrast(legKleur(k))}">${LET[k]}</i>`:''}</span>`+
       `<span>${esc(legLabel(k))}${legExtra(k)?`<em>${esc(legExtra(k))}</em>`:''}</span></div>`).join('')}
   </div>
 </div>
@@ -1103,10 +1105,9 @@ function drawForm(){
   if(m.soort!=='lunch')
     h+=`<div class="sec"><header><h2>Wist je dat? — pagina 7</h2></header>
       <textarea class="big" data-text="wist">${esc(m.wist)}</textarea></div>`;
-  h+=`<div class="sec"><header><h2>Dieetbolletjes</h2>
-        ${SERVED?'<button class="mini" id="legDelen">Overnemen naar alle kaarten</button>':''}</header>
-      <p class="hint">Naam, kleur en toelichting per bolletje.${m.soort==='lunch'
-        ?' De toelichting verschijnt alleen op de legenda van de dinerkaart.':''}</p>
+  h+=`<div class="sec"><header><h2>Dieetbolletjes</h2></header>
+      <p class="hint">Naam, kleur en toelichting per bolletje. Dit geldt voor al je kaarten tegelijk.${
+        m.soort==='lunch'?' De toelichting verschijnt alleen op de legenda van de dinerkaart.':''}</p>
       ${Object.keys(TAGS).map(k=>`<div class="row">
         <div class="l1">
           <input class="kleur" type="color" data-legkleur="${k}" value="${legKleur(k)}" aria-label="Kleur">
@@ -1117,7 +1118,7 @@ function drawForm(){
       </div>`).join('')}</div>`;
   h+=`<div class="sec"><header><h2>Weergave</h2></header>
       <p class="hint">Letters in de bolletjes helpen ook je gasten: V vegetarisch, G glutenvrij, L lactosevrij.</p>
-      <button class="mini" id="letters">Letters in bolletjes: ${m.letters?'aan':'uit'}</button>
+      <button class="mini" id="letters">Letters in bolletjes: ${INST.letters?'aan':'uit'}</button>
       <button class="mini" id="resetAll">Alle vlakken terug naar de originele maatvoering</button></div>`;
   form.innerHTML=h;
 }
@@ -1173,9 +1174,8 @@ form.addEventListener('input',e=>{
 form.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.id==='resetAll'){ m.layout={}; return draw(); }
-  if(b.id==='letters'){ m.letters=!m.letters; drawForm(); return draw(); }
-  if(b.dataset.legterug){ if(m.leg) delete m.leg[b.dataset.legterug]; drawForm(); return draw(); }
-  if(b.id==='legDelen') return legDelen();
+  if(b.id==='letters'){ INST.letters=!INST.letters; instBewaar(); drawForm(); return draw(); }
+  if(b.dataset.legterug){ delete INST.leg[b.dataset.legterug]; instBewaar(); drawForm(); return draw(); }
 
   if(b.id==='blokErbij'){
     const id='b'+Date.now().toString(36);
@@ -1403,28 +1403,23 @@ setInterval(()=>{ if(JSON.stringify(m)!==lastSaved) push(); }, 20000);
 
 let kaarten=['diner'];
 
-/* de instellingen van de bolletjes naar de andere kaarten overzetten */
-async function legDelen(){
+let instTimer=null;
+async function instHaal(){
   if(!SERVED) return;
-  const andere=kaarten.filter(x=>x!==kaart);
-  if(!andere.length) return alert('Er is nog geen andere kaart om het naar over te zetten.');
-  if(!confirm('Naam, kleur en toelichting van de bolletjes overzetten naar: '+andere.join(', ')+'?')) return;
-  clearTimeout(saveTimer); await push();
-  say('Overzetten…','busy');
-  let goed=0;
-  for(const naam of andere){
-    try{
-      const r=await fetch('/api/menu?kaart='+encodeURIComponent(naam));
-      if(!r.ok) continue;
-      const d=await r.json();
-      d.leg=structuredClone(m.leg||{});
-      d.letters=m.letters;
-      const w=await fetch('/api/menu?kaart='+encodeURIComponent(naam),
-        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
-      if(w.ok) goed++;
-    }catch{}
-  }
-  say(goed?('Overgezet naar '+goed+' kaart'+(goed>1?'en':'')):'Overzetten mislukt', goed?'ok':'err');
+  try{
+    const r=await fetch('/api/instellingen');
+    if(r.ok){ const d=await r.json(); INST={leg:d.leg||{}, letters:!!d.letters}; return; }
+  }catch{}
+  INST={leg:structuredClone(m.leg||{}), letters:!!m.letters};   /* eerste keer: uit deze kaart */
+  instBewaar();
+}
+function instBewaar(){
+  if(!SERVED) return;
+  clearTimeout(instTimer);
+  instTimer=setTimeout(()=>{
+    fetch('/api/instellingen',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(INST)}).catch(()=>{});
+  },400);
 }
 
 async function vulKaarten(){
@@ -1479,7 +1474,7 @@ addEventListener('keydown',e=>{
   e.preventDefault(); ganaar(kaarten[nr-1]);
 });
 
-(async()=>{ await pull(); await vulKaarten(); applyType(); drawForm(); _draw();
+(async()=>{ await pull(); await instHaal(); await vulKaarten(); applyType(); drawForm(); _draw();
   past=[snap()]; refreshHist();
   if(SERVED) lastSaved=JSON.stringify(m); })();
 </script>
