@@ -1103,9 +1103,10 @@ function drawForm(){
   if(m.soort!=='lunch')
     h+=`<div class="sec"><header><h2>Wist je dat? — pagina 7</h2></header>
       <textarea class="big" data-text="wist">${esc(m.wist)}</textarea></div>`;
-  if(m.soort!=='lunch')
-    h+=`<div class="sec"><header><h2>Legenda — pagina 3</h2></header>
-      <p class="hint">Naam en eventuele toelichting per bolletje.</p>
+  h+=`<div class="sec"><header><h2>Dieetbolletjes</h2>
+        ${SERVED?'<button class="mini" id="legDelen">Overnemen naar alle kaarten</button>':''}</header>
+      <p class="hint">Naam, kleur en toelichting per bolletje.${m.soort==='lunch'
+        ?' De toelichting verschijnt alleen op de legenda van de dinerkaart.':''}</p>
       ${Object.keys(TAGS).map(k=>`<div class="row">
         <div class="l1">
           <input class="kleur" type="color" data-legkleur="${k}" value="${legKleur(k)}" aria-label="Kleur">
@@ -1174,6 +1175,7 @@ form.addEventListener('click',e=>{
   if(b.id==='resetAll'){ m.layout={}; return draw(); }
   if(b.id==='letters'){ m.letters=!m.letters; drawForm(); return draw(); }
   if(b.dataset.legterug){ if(m.leg) delete m.leg[b.dataset.legterug]; drawForm(); return draw(); }
+  if(b.id==='legDelen') return legDelen();
 
   if(b.id==='blokErbij'){
     const id='b'+Date.now().toString(36);
@@ -1400,6 +1402,30 @@ addEventListener('keydown',e=>{
 setInterval(()=>{ if(JSON.stringify(m)!==lastSaved) push(); }, 20000);
 
 let kaarten=['diner'];
+
+/* de instellingen van de bolletjes naar de andere kaarten overzetten */
+async function legDelen(){
+  if(!SERVED) return;
+  const andere=kaarten.filter(x=>x!==kaart);
+  if(!andere.length) return alert('Er is nog geen andere kaart om het naar over te zetten.');
+  if(!confirm('Naam, kleur en toelichting van de bolletjes overzetten naar: '+andere.join(', ')+'?')) return;
+  clearTimeout(saveTimer); await push();
+  say('Overzetten…','busy');
+  let goed=0;
+  for(const naam of andere){
+    try{
+      const r=await fetch('/api/menu?kaart='+encodeURIComponent(naam));
+      if(!r.ok) continue;
+      const d=await r.json();
+      d.leg=structuredClone(m.leg||{});
+      d.letters=m.letters;
+      const w=await fetch('/api/menu?kaart='+encodeURIComponent(naam),
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+      if(w.ok) goed++;
+    }catch{}
+  }
+  say(goed?('Overgezet naar '+goed+' kaart'+(goed>1?'en':'')):'Overzetten mislukt', goed?'ok':'err');
+}
 
 async function vulKaarten(){
   if(!SERVED) return $('kaart').hidden=true;
