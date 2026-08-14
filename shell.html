@@ -530,6 +530,8 @@ function block(id,list,theme,extraPad){
       `<div class="pr${selc}" data-sec="${sec}" data-idx="${i}" style="${pof}">${esc(it.p)}</div>`;
   }).join('');
   let fs='';
+  if(g.gap!=null) fs+=`row-gap:${g.gap}mm;`;
+  if(g.verdeel) fs+=`align-content:space-between;`;
   if(g.fs!=null) fs+=`--body:${g.fs}pt;--lead:${num(g.fs*1.2)}pt;`;
   if(g.fsN!=null) fs+=`--fsN:${g.fsN}pt;`;
   if(g.fsD!=null) fs+=`--fsD:${g.fsD}pt;`;
@@ -930,6 +932,14 @@ addEventListener('keydown',e=>{
 const FIELDS=[['l','X'],['t','Y'],['w','Breedte'],['h','Hoogte'],['pw','Prijskolom'],['fs','Korps (pt)']];
 const TYPEFLD=[['fsN','Titel (pt)'],['fsD','Omschrijving (pt)'],['fsP','Prijs (pt)']];
 
+function blokVelden(g){
+  return `<div class='fld'><label for='f_gap'>Regelafstand</label>`+
+    `<input id='f_gap' type='number' step='0.25' data-k='gap' value='${g.gap??''}' placeholder='auto'></div>`+
+    `<div class='fld'><label>&nbsp;</label>`+
+    `<button class='mini' data-blokverdeel='1'>${g.verdeel?'Gelijk verdeeld':'Van boven af'}</button></div>`+
+    `<div class='fld wide'><button class='mini' data-blokrecht='1'>Verschuivingen in dit blok wissen</button></div>`;
+}
+
 function drawInsp(){
   if(!editing || (!sel&&!selItem)){ insp.hidden=true; return; }
   insp.hidden=false;
@@ -941,7 +951,7 @@ function drawInsp(){
   let h=FIELDS.filter(([k])=>bas[k]!=null)
     .map(([k,lab])=>`<div class="fld"><label for="f_${k}">${lab}</label>
       <input id="f_${k}" type="number" step="0.25" data-k="${k}" value="${g[k]}"></div>`).join('');
-  if(secOf(sel)) h+=TYPEFLD.map(([k,lab])=>`<div class="fld"><label for="f_${k}">${lab}</label>
+  if(secOf(sel)) h+=blokVelden(g)+TYPEFLD.map(([k,lab])=>`<div class="fld"><label for="f_${k}">${lab}</label>
       <input id="f_${k}" type="number" step="0.5" data-k="${k}" value="${g[k]??''}"
       placeholder="${m.type.body}"></div>`).join('');
   $('iFields').innerHTML=h;
@@ -992,11 +1002,20 @@ $('iFields').addEventListener('input',e=>{
   if(t.value===''){ delete (m.layout[sel]||{})[k]; return draw(); }
   const v=parseFloat(t.value); if(isNaN(v)) return;
   const grens={l:[-200,300], t:[-260,400], w:[2,300], h:[2,400],
-               pw:[2,120], fs:[4,120], fsN:[4,120], fsD:[4,120], fsP:[4,120]}[k];
+               pw:[2,120], fs:[4,120], fsN:[4,120], fsD:[4,120], fsP:[4,120],
+               gap:[0,60]}[k];
   set(sel, k, grens ? klem(v,grens[0],grens[1]) : v);
   draw();
 });
 $('iFields').addEventListener('click',e=>{
+  const vd=e.target.closest('[data-blokverdeel]');
+  if(vd && sel){ set(sel,'verdeel', L(sel).verdeel?0:1); draw(); return drawInsp(); }
+  const rc=e.target.closest('[data-blokrecht]');
+  if(rc && sel){
+    const sec=secOf(sel);
+    if(sec) (m.s[sec]||[]).forEach(it=>{ delete it.dx; delete it.dy; delete it.px; delete it.py; });
+    draw(); return drawInsp();
+  }
   const b=e.target.closest('[data-it]'); if(!b||!selItem) return;
   const a=m.s[selItem.sec][selItem.idx].t, t=b.dataset.it;
   a.includes(t)?a.splice(a.indexOf(t),1):a.push(t);
