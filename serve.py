@@ -1,42 +1,52 @@
 #!/usr/bin/env python3
-# De Tafelaar - menukaart, lokaal draaiend
-import http.server, socketserver, json, threading, webbrowser, shutil, time
+# De Tafelaar - menukaart, lokaal draaiend. Meerdere kaarten naast elkaar.
+import http.server, socketserver, json, threading, shutil, subprocess, os, re
 from pathlib import Path
 from datetime import datetime
+from urllib.parse import urlparse, parse_qs
 
 HOME = Path.home()
 D = HOME / 'Tafelaar'
-D.mkdir(exist_ok=True)
-(D / 'backups').mkdir(exist_ok=True)
-MENU = D / 'menu.json'
+KAARTEN = D / 'kaarten'
+BACKUPS = D / 'backups'
+for p in (D, KAARTEN, BACKUPS, D / 'pdf'):
+    p.mkdir(exist_ok=True)
 HTML = D / 'menukaart.html'
+POORT = 8765
 
-# nieuwste gedownloade editor ophalen en klaarzetten
-cands = list((HOME / 'Downloads').glob('tafelaar-menukaart*.html'))
-cands += list((HOME / 'Downloads').glob('tafelaar-menu-editor*.html'))
-if cands:
-    src = max(cands, key=lambda p: p.stat().st_mtime)
-    if not HTML.exists() or src.stat().st_mtime > HTML.stat().st_mtime:
-        shutil.copy2(src, HTML)
+# oude opzet met een enkel menu.json overzetten
+oud = D / 'menu.json'
+if oud.exists() and not (KAARTEN / 'diner.json').exists():
+    shutil.move(str(oud), str(KAARTEN / 'diner.json'))
+    print('menu.json is nu kaarten/diner.json')
 
 s = HTML.read_text(encoding='utf-8')
+lock = threading.Lock()
+VEILIG = re.compile(r'^[a-z0-9][a-z0-9-]{0,40}$')
 
-def html_voor_mode():
+
+def pad_van(naam):
+    naam = (naam or 'diner').lower()
+    if not VEILIG.match(naam):
+        naam = 'diner'
+    return KAARTEN / (naam + '.json')
+
+
+def lijst():
+    return sorted(p.stem for p in KAARTEN.glob('*.json'))
+
+
+def html_voor(naam):
     # Chrome bepaalt het papierformaat bij het inlezen; javascript is te laat.
     mode = 'a5'
     try:
-        mode = json.loads(MENU.read_text('utf-8')).get('print', 'a5')
+        mode = json.loads(pad_van(naam).read_text('utf-8')).get('print', 'a5')
     except Exception:
         pass
     regel = '@page{size:A4 landscape;margin:0}' if mode == 'a4' else '@page{size:A5;margin:0}'
     oud = '<style id="pagerule">@page{size:A5;margin:0}</style>'
-    nieuw = '<style id="pagerule">' + regel + '</style>'
-    return s.replace(oud, nieuw, 1).encode('utf-8')
+    return s.replace(oud, '<style id="pagerule">' + regel + '</style>', 1).encode('utf-8')
 
-BODY = s.encode('utf-8')
-lock = threading.Lock()
-
-import subprocess, os
 
 BROWSERS = [
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -46,28 +56,27 @@ BROWSERS = [
     '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
 ]
 
-def maak_pdf():
+
+def maak_pdf(naam):
     """Laat de browser buiten beeld printen: geen printvenster, geen schaling."""
-    (D / 'pdf').mkdir(exist_ok=True)
     exe = next((b for b in BROWSERS if os.path.exists(b)), None)
     if not exe:
         return None, 'geen Chrome gevonden'
     stempel = datetime.now().strftime('%Y-%m-%d_%H-%M')
-    uit = D / 'pdf' / ('menukaart_' + stempel + '.pdf')
+    uit = D / 'pdf' / f'{naam}_{stempel}.pdf'
     cmd = [exe, '--headless=new', '--disable-gpu', '--no-pdf-header-footer',
-           '--virtual-time-budget=6000',
-           '--print-to-pdf=' + str(uit), 'http://127.0.0.1:8765/']
+           '--virtual-time-budget=6000', f'--print-to-pdf={uit}',
+           f'http://127.0.0.1:{POORT}/?kaart={naam}']
     try:
-        r = subprocess.run(cmd, capture_output=True, timeout=90)
+        r = subprocess.run(cmd, capture_output=True, timeout=120)
     except Exception:
         return None, 'browser reageerde niet op tijd'
     if not uit.exists() or uit.stat().st_size < 1000:
         return None, (r.stderr.decode()[-200:] or 'lege pdf')
-    for f in sorted((D / 'pdf').glob('menukaart_*.pdf'))[:-20]:
+    for f in sorted((D / 'pdf').glob('*.pdf'))[:-30]:
         f.unlink(missing_ok=True)
     subprocess.run(['open', str(uit)])
     return uit, None
-
 
 
 class H(http.server.BaseHTTPRequestHandler):
@@ -80,47 +89,65 @@ class H(http.server.BaseHTTPRequestHandler):
         if body:
             self.wfile.write(body)
 
+    def vraag(self):
+        u = urlparse(self.path)
+        return u.path, parse_qs(u.query).get('kaart', ['diner'])[0]
+
     def do_GET(self):
-        if self.path in ('/', '/index.html'):
-            return self.send(200, html_voor_mode(), 'text/html; charset=utf-8')
-        if self.path == '/api/menu':
+        pad, naam = self.vraag()
+        if pad in ('/', '/index.html'):
+            return self.send(200, html_voor(naam), 'text/html; charset=utf-8')
+        if pad == '/api/kaarten':
+            return self.send(200, json.dumps({'kaarten': lijst()}).encode())
+        if pad == '/api/menu':
             with lock:
-                if MENU.exists():
-                    return self.send(200, MENU.read_bytes())
+                f = pad_van(naam)
+                if f.exists():
+                    return self.send(200, f.read_bytes())
             return self.send(404, b'{}')
         self.send(404, b'{}')
 
     def do_POST(self):
-        if self.path == '/api/pdf':
-            pad, fout = maak_pdf()
+        pad, naam = self.vraag()
+        n = int(self.headers.get('Content-Length') or 0)
+        raw = self.rfile.read(n) if n else b''
+
+        if pad == '/api/pdf':
+            try:
+                naam = json.loads(raw).get('kaart', naam)
+            except Exception:
+                pass
+            if not VEILIG.match(naam or ''):
+                naam = 'diner'
+            uit, fout = maak_pdf(naam)
             if fout:
                 return self.send(500, json.dumps({'fout': fout}).encode())
-            return self.send(200, json.dumps({'ok': True, 'pad': pad.name}).encode())
-        if self.path != '/api/menu':
+            return self.send(200, json.dumps({'ok': True, 'pad': uit.name}).encode())
+
+        if pad != '/api/menu':
             return self.send(404, b'{}')
-        n = int(self.headers.get('Content-Length') or 0)
-        raw = self.rfile.read(n)
         try:
             data = json.loads(raw)
         except Exception:
             return self.send(400, b'{}')
         with lock:
-            if MENU.exists():
+            f = pad_van(naam)
+            if f.exists():
                 stamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-                shutil.copy2(MENU, D / 'backups' / ('menu_' + stamp + '.json'))
-                old = sorted((D / 'backups').glob('menu_*.json'))
-                for f in old[:-40]:
-                    f.unlink()
-            tmp = MENU.with_suffix('.tmp')
+                shutil.copy2(f, BACKUPS / f'{f.stem}_{stamp}.json')
+                for oudje in sorted(BACKUPS.glob(f'{f.stem}_*.json'))[:-40]:
+                    oudje.unlink()
+            tmp = f.with_suffix('.tmp')
             tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), 'utf-8')
-            tmp.replace(MENU)
+            tmp.replace(f)
         self.send(200, b'{"ok":true}')
 
     def log_message(self, *a):
         pass
 
+
 socketserver.ThreadingTCPServer.allow_reuse_address = True
 socketserver.ThreadingTCPServer.daemon_threads = True
-with socketserver.ThreadingTCPServer(('127.0.0.1', 8765), H) as srv:
-    print('draait op http://localhost:8765/  map: ' + str(D))
+with socketserver.ThreadingTCPServer(('127.0.0.1', POORT), H) as srv:
+    print(f'draait op http://localhost:{POORT}/  kaarten: {", ".join(lijst()) or "nog geen"}')
     srv.serve_forever()

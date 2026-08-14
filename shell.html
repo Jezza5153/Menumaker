@@ -41,6 +41,8 @@ button.ghost{background:transparent}
 .status.ok{color:#7BD8A8;border-color:#2F5B46}
 .status.busy{color:#E8C76A;border-color:#5B4B2A}
 .status.err{color:#F09A9A;border-color:#5B2F2F}
+#kaart{font-family:inherit;font-size:12.5px;background:#2E2633;color:var(--ui-text);
+       border:1px solid var(--ui-line);border-radius:7px;padding:6px 8px;max-width:170px}
 .sizer{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ui-dim);
        border:1px solid var(--ui-line);border-radius:7px;padding:3px 6px}
 .sizer output{min-width:38px;text-align:center;color:var(--ui-text);font-variant-numeric:tabular-nums}
@@ -96,6 +98,7 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
       font-family:'Sorts Mill Goudy',Georgia,serif;color:var(--ink)}
 .page img{display:block;width:148mm;height:210mm}
 
+/* twee A5-kaarten naast elkaar op een liggende A4 */
 .a4{position:relative;width:297mm;height:210mm;display:flex;justify-content:center;
     background:#fff;margin:0 auto 16px;box-shadow:0 10px 40px rgba(0,0,0,.55)}
 .a4 .page{margin:0;box-shadow:none}
@@ -151,6 +154,7 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
 .guide.h{left:0;right:0;height:1px}
 .guide.edge{background:#FF7A9C}
 .guide.home{background:#E8C76A}
+/* regelraster binnen een blok, alleen zichtbaar tijdens slepen */
 .rasterlijn{position:absolute;left:0;right:0;height:1px;z-index:40;pointer-events:none;
             background:rgba(49,224,196,.3)}
 .rasterlijn.aan{background:#31E0C4;box-shadow:0 0 0 .5px rgba(49,224,196,.45)}
@@ -193,6 +197,7 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
       <button class="primary" id="pdf">PDF maken</button>
       <button id="save">Bewaar</button>
       <button id="load">Open</button>
+      <select id="kaart" aria-label="Kaart"></select>
       <button id="undo" title="Ongedaan maken (Cmd+Z)">↶</button>
       <button id="redo" title="Opnieuw (Cmd+Shift+Z)">↷</button>
       <button id="edit">Indeling bewerken</button>
@@ -279,11 +284,23 @@ const LAYOUT={
  'p7.blkDes' :{lb:'Blok desserts',   l:4.66, t:38.18, w:77.81, h:133.27,pw:18.12},
  'p7.boxWiT' :{lb:'Kader kop Wist je dat',l:84.16,t:91.69,w:57.83,h:19.82},
  'p7.hdWi'   :{lb:'Kop Wist je dat', l:88.5, t:96.5, fs:36},
- 'p7.boxWi'  :{lb:'Kader tekst Wist je dat',l:84.16,t:110.74,w:57.83,h:80.1}
+ 'p7.boxWi'  :{lb:'Kader tekst Wist je dat',l:84.16,t:110.74,w:57.83,h:80.1},
+
+ /* lunchkaart: één A5 in dezelfde huisstijl */
+ 'lu.deco'   :{lb:'Decorvlak',       l:95.42,t:0,     w:52.58, h:210},
+ 'lu.frame'  :{lb:'Kader',           l:3.89, t:5.16,  w:140.21,h:198.29},
+ 'lu.bar'    :{lb:'Balk titel',      l:5.16, t:9.5,   w:62,    h:19.05},
+ 'lu.hdT'    :{lb:'Kop titel',       l:7.6,  t:12.4,  fs:36},
+ 'lu.hd1'    :{lb:'Kop links boven', l:6,    t:34,    fs:29},
+ 'lu.blk1'   :{lb:'Blok links boven',l:3.98, t:46,    w:66.5,  h:70, pw:15},
+ 'lu.hd2'    :{lb:'Kop links onder', l:6,    t:122,   fs:29},
+ 'lu.blk2'   :{lb:'Blok links onder',l:3.98, t:134,   w:66.5,  h:66, pw:15},
+ 'lu.hd3'    :{lb:'Kop rechts',      l:76,   t:34,    fs:29},
+ 'lu.blk3'   :{lb:'Blok rechts',     l:74,   t:46,    w:70.2,  h:154, pw:15}
 };
 
 const DEFAULT={
- type:{body:16,nm:16,ds:16,hd:1}, zoom:.85, layout:{},
+ soort:'diner', type:{body:16,nm:16,ds:16,hd:1}, zoom:.85, print:'a5', flip:'lang', layout:{},
  concept:`Bij De Tafelaar draait alles om aandacht. Aandacht voor smaak, voor het product, voor duurzaamheid en natuurlijk voor onze gasten.
 We houden van samen genieten. Uit eten met vrienden, een avond uitgebreid tafelen of juist spontaan aanschuiven aan onze gezamenlijke tafel. Alles kan, niets hoeft.
 Ons concept is simpel: bestel 2 à 3 gerechtjes per persoon, dit is genoeg voor een avondmaaltijd. Een beetje à la tapas, dus: lekker delen en gewoon kiezen waar je zin in hebt. Dan zetten wij het met plezier voor je op tafel.`,
@@ -335,6 +352,20 @@ Nieuwsgierig naar de opties (catering of zaal)? Laat het even weten.`,
    {n:'Kaasplankje',d:'Selectie van 3 verschillende kazen.',p:'15',t:['v']}]
  }};
 
+const LUNCH={
+ soort:'lunch', type:{body:16,nm:16,ds:16,hd:1}, zoom:.85, print:'a5', flip:'lang', layout:{},
+ koppen:{titel:'LUNCH', k1:'BROODJES', k2:'WARM', k3:'ERBIJ'},
+ s:{
+  l1:[{n:'Broodje Carpaccio',d:'Truffelmayonaise - Parmezaan',p:'11,50',t:[]},
+      {n:'Broodje Gerookte Zalm',d:'Roomkaas - Citroen - Dille',p:'11,50',t:['g']},
+      {n:'Clubsandwich',d:'Kip - Bacon - Ei - Tomaat',p:'12,50',t:[]}],
+  l2:[{n:'Soep van de dag',d:'Met brood en boter',p:'6,50',t:['v']},
+      {n:'Tosti Ham-Kaas',d:'Met tomatensoep',p:'8,50',t:[]},
+      {n:'Uitsmijter',d:'Drie eieren - Ham - Kaas',p:'9,50',t:['g']}],
+  l3:[{n:'Appeltaart',d:'Met slagroom',p:'4,50',t:['v']},
+      {n:'Koffie of thee',d:'',p:'3',t:['v','g','l']}]
+ }};
+
 const SECTIONS=[['arrangementen','Arrangementen — pag. 2'],['kazen','Kazen — pag. 3'],
  ['charcuterie','Charcuterie — pag. 3'],['borrel','Borrel — pag. 3'],['koud','Koud — pag. 5'],
  ['klassiekers','Klassiekers — pag. 5'],['warm','Warm — pag. 5'],['desserts','Desserts — pag. 7']];
@@ -348,6 +379,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const nl=s=>esc(s).replace(/\n/g,'<br>');
 const dots=t=>t.map(x=>`<span class="dot ${x}"></span>`).join('');
 
+/* de bolletjes horen bij het laatste woord: samen afbreken, nooit los */
 function naam(it){
   const t=esc(it.n);
   if(!it.t||!it.t.length) return t;
@@ -357,7 +389,6 @@ function naam(it){
   return kop+`<span class="nw">${staart}${dots(it.t)}</span>`;
 }
 const num=v=>Math.round(v*100)/100;
-const klem=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
 
 /* ---------- geschiedenis ---------- */
 let past=[], future=[], histTimer=null;
@@ -399,7 +430,7 @@ function geo(id){
 function set(id,k,v){ (m.layout[id]=m.layout[id]||{})[k]=v; }
 
 /* een gerechtenblok */
-const SECOF={'p2.blkArr':'arrangementen','p3.blkKaz':'kazen','p3.blkCha':'charcuterie',
+const SECOF={'lu.blk1':'l1','lu.blk2':'l2','lu.blk3':'l3','p2.blkArr':'arrangementen','p3.blkKaz':'kazen','p3.blkCha':'charcuterie',
   'p3.blkBor':'borrel','p5.blkKou':'koud','p5.blkKla':'klassiekers','p5.blkWar':'warm',
   'p7.blkDes':'desserts'};
 
@@ -428,9 +459,26 @@ function block(id,list,theme,extraPad){
       ${theme==='dark'?`<div class="pricebg" style="width:${g.pw}mm"></div>`:''}${rows}</div>`;
 }
 
+const kop=k=>((m.koppen||{})[k]||'');
+
+function tekenLunch(){
+  return `<div class="page"><span class="pagetag">lunchkaart</span>
+  <div class="deco" data-el="lu.deco" style="${geo('lu.deco')}"></div>
+  <div class="frame" data-el="lu.frame" style="${geo('lu.frame')}"></div>
+  <div class="bar-burg" data-el="lu.bar" style="${geo('lu.bar')}"></div>
+  <div class="hd outline" data-el="lu.hdT" style="${geo('lu.hdT')}">${esc(kop('titel'))}</div>
+  <div class="hd burg" data-el="lu.hd1" style="${geo('lu.hd1')}">${esc(kop('k1'))}</div>
+  ${block('lu.blk1',m.s.l1||[],'dark')}
+  <div class="hd burg" data-el="lu.hd2" style="${geo('lu.hd2')}">${esc(kop('k2'))}</div>
+  ${block('lu.blk2',m.s.l2||[],'dark')}
+  <div class="hd ink" data-el="lu.hd3" style="${geo('lu.hd3')}">${esc(kop('k3'))}</div>
+  ${block('lu.blk3',m.s.l3||[],'light')}
+</div>`;
+}
+
 function draw(skipHist){
   if(!skipHist) commit();
-  preview.innerHTML=`
+  preview.innerHTML = m.soort==='lunch' ? tekenLunch() : `
 <div class="page"><span class="pagetag">1 · kaft</span><img alt="kaft" src="data:image/png;base64,__IMG1__"></div>
 
 <div class="page"><span class="pagetag">2 · concept</span>
@@ -497,12 +545,31 @@ function draw(skipHist){
   if(sel){ const el=preview.querySelector(`[data-el="${CSS.escape(sel)}"]`); if(el) mark(el); else {sel=null; drawInsp();} }
 }
 
+/* ---------- twee kaarten op een A4 ----------
+   Volgorde voor dubbelzijdig printen met omslaan langs de KORTE zijde.
+   Vel 1 voor: kaft + kazen · achter: achterkant + concept
+   Vel 2 voor: koud + desserts · achter: achterkant + achterkant          */
 const VELLEN=[[0,2],[3,1],[4,6],[7,5]];
 const VELNAAM=['vel 1 · voorkant','vel 1 · achterkant','vel 2 · voorkant','vel 2 · achterkant'];
 
 function imposeer(){
   if(m.print!=='a4') return;
   const ps=[...preview.children].filter(n=>n.classList.contains('page'));
+
+  if(m.soort==='lunch'){
+    if(ps.length!==1) return;
+    const v=document.createElement('div'); v.className='a4';
+    const kopie=ps[0].cloneNode(true);
+    kopie.querySelectorAll('[data-el],[data-sec]').forEach(x=>{
+      x.removeAttribute('data-el'); x.removeAttribute('data-sec'); x.classList.remove('sel','selitem'); });
+    v.appendChild(ps[0]); v.appendChild(kopie);
+    v.insertAdjacentHTML('beforeend',
+      '<span class="snij t"></span><span class="snij b"></span>'+
+      '<span class="velnaam">twee dezelfde kaarten · in het midden snijden</span>');
+    preview.innerHTML=''; preview.appendChild(v);
+    return;
+  }
+
   if(ps.length<8) return;
   const frag=document.createDocumentFragment();
   VELLEN.forEach(([a,b],i)=>{
@@ -520,19 +587,19 @@ function imposeer(){
 
 function applyPrint(){
   if(!m.print) m.print='a5';
-  document.getElementById('pagerule').textContent = m.print==='a4'
+  $('pagerule').textContent = m.print==='a4'
     ? '@page{size:A4 landscape;margin:0}'
     : '@page{size:A5;margin:0}';
-  const b=document.getElementById('opzet');
+  const b=$('opzet');
   b.textContent = m.print==='a4' ? 'Print: 2 op A4' : 'Print: los A5';
   b.classList.toggle('on', m.print==='a4');
-  const o=document.getElementById('omslag');
+  const o=$('omslag');
   o.hidden = m.print!=='a4';
   if(!m.flip) m.flip='lang';
   o.textContent = m.flip==='kort' ? 'Omslaan: korte zijde' : 'Omslaan: lange zijde';
 }
-document.getElementById('omslag').onclick=()=>{ m.flip = m.flip==='kort' ? 'lang' : 'kort'; applyPrint(); draw(); };
-document.getElementById('opzet').onclick=()=>{ m.print = m.print==='a4' ? 'a5' : 'a4'; applyPrint(); draw(); };
+$('omslag').onclick=()=>{ m.flip = m.flip==='kort' ? 'lang' : 'kort'; applyPrint(); draw(); };
+$('opzet').onclick=()=>{ m.print = m.print==='a4' ? 'a5' : 'a4'; applyPrint(); draw(); };
 
 /* ---------- selectie, slepen en schalen ---------- */
 function mark(el){
@@ -553,7 +620,8 @@ function boxOf(page,node){
 }
 function candidates(page,skip,metGerechten){
   const X=[0,74,148], Y=[0,105,210], edge=new Set([0,74,148,105,210]);
-  page.querySelectorAll(metGerechten?'[data-el],.it,.pr':'[data-el]').forEach(n=>{
+  const sel = metGerechten ? '[data-el],.it,.pr' : '[data-el]';
+  page.querySelectorAll(sel).forEach(n=>{
     if(n===skip||n.contains(skip)) return;
     const b=boxOf(page,n);
     X.push(b.x,b.x+b.w/2,b.x+b.w);
@@ -565,7 +633,6 @@ function candidates(page,skip,metGerechten){
 const mmTxt=v=>(v>0?'+':'')+v.toFixed(2).replace('.',',');
 function hudMaak(){ const d=document.createElement('div'); d.className='hud'; document.body.appendChild(d); return d; }
 function hudZet(d,txt,ev){ d.textContent=txt; d.style.left=(ev.clientX+16)+'px'; d.style.top=(ev.clientY+18)+'px'; }
-
 function snapAxis(pos,size,cands){
   if(!snapOn) return null;
   let best=null;
@@ -593,23 +660,27 @@ preview.addEventListener('pointerdown',e=>{
   const el=e.target.closest('[data-el]');
   const itEl=e.target.closest('.it,.pr');
 
-  /* al geselecteerd? dan versleep je de tekst zelf in plaats van het blok */
+  /* al geselecteerd? dan versleep je het gerecht zelf, prijs gaat mee */
   if(itEl && selItem && selItem.sec===itEl.dataset.sec && selItem.idx===+itEl.dataset.idx){
     e.preventDefault();
     const it=m.s[selItem.sec][selItem.idx];
-    const alleenPrijs=e.altKey;
+    const alleenPrijs=e.altKey;                       /* Alt: alleen de prijs */
     const kx=alleenPrijs?'px':'dx', ky=alleenPrijs?'py':'dy';
     const k0=mmPerPx(), x0=e.clientX, y0=e.clientY;
     const s0={x:it[kx]||0, y:it[ky]||0};
     const page=itEl.closest('.page'), blok=itEl.closest('.block');
     const q=`[data-sec="${CSS.escape(itEl.dataset.sec)}"][data-idx="${itEl.dataset.idx}"]`;
     const txEl=blok.querySelector('.it'+q), prEl=blok.querySelector('.pr'+q);
+
+    /* regelhoogte van dit gerecht, om per hele regel te kunnen verspringen */
     const nmEl=txEl.querySelector('.nm');
     const lh=parseFloat(getComputedStyle(nmEl).lineHeight)*k0 || 6.77;
+
+    /* regelraster tekenen: elke lijn is één tekstregel */
     const bb=boxOf(page,blok), b0=boxOf(page,itEl);
     const rustY=b0.y-(it.dy||0)-bb.y, rustX=b0.x-(it.dx||0)-bb.x;
-    const absX=b0.x-s0.x, absY=b0.y-s0.y;
-    const cand=candidates(page,itEl,true);
+    const absX=b0.x-s0.x, absY=b0.y-s0.y;        /* plek op de pagina zonder verschuiving */
+    const cand=candidates(page,itEl,true);       /* alles op deze pagina om op uit te lijnen */
     const raster=[];
     for(let r=-10;r<=20;r++){
       const y=rustY+r*lh;
@@ -630,14 +701,17 @@ preview.addEventListener('pointerdown',e=>{
       const px=num(dx+(it.px||0)), py=num(dy+(it.py||0));
       if(prEl) prEl.style.transform=(px||py)?`translate(${px}mm,${py}mm)`:'';
     };
+
     const mv=ev=>{
       let dx=s0.x+(ev.clientX-x0)*k0, dy=s0.y+(ev.clientY-y0)*k0;
       let regels=null; const lines=[];
       if(snapOn){
+        /* zijwaarts: eerst terug naar nul, anders uitlijnen op iets anders */
         if(Math.abs(dx)<=TOL) dx=0;
         else { const sx=snapAxis(absX+dx,b0.w,cand.X);
                if(sx){ dx=num(sx.v-absX);
                        lines.push({axis:'v',at:num(sx.line),edge:cand.edge.has(num(sx.line))}); } }
+        /* verticaal: eerst het regelraster, anders uitlijnen op iets anders */
         const r=Math.round(dy/lh);
         if(Math.abs(dy-r*lh)<=TOL){ dy=num(r*lh); regels=r; }
         else { const sy=snapAxis(absY+dy,b0.h,cand.Y);
@@ -685,14 +759,14 @@ preview.addEventListener('pointerdown',e=>{
   const move=ev=>{
     const dx=(ev.clientX-x0)*k, dy=(ev.clientY-y0)*k, lines=[];
     if(mode==='move'){
-      let L2=klem(s0.l+dx, -b0.w+8, 148-8), T2=klem(s0.t+dy, -b0.h+8, 210-8);
+      let L2=s0.l+dx, T2=s0.t+dy;
       const sx=snapAxis(L2,b0.w,cand.X), sy=snapAxis(T2,b0.h,cand.Y);
       if(sx){ L2=sx.v; lines.push({axis:'v',at:num(sx.line),edge:cand.edge.has(num(sx.line))}); }
       if(sy){ T2=sy.v; lines.push({axis:'h',at:num(sy.line),edge:cand.edge.has(num(sy.line))}); }
       set(id,'l',num(L2)); set(id,'t',num(T2));
       el.style.left=L(id).l+'mm'; el.style.top=L(id).t+'mm';
     }else{
-      let W2=klem(s0.w+dx,4,200), H2=klem(s0.h+dy,3,260);
+      let W2=Math.max(4,s0.w+dx), H2=Math.max(3,s0.h+dy);
       if(snapOn){
         for(const c of cand.X) if(Math.abs(s0.l+W2-c)<=TOL){ W2=c-s0.l; lines.push({axis:'v',at:num(c),edge:cand.edge.has(num(c))}); break; }
         for(const c of cand.Y) if(Math.abs(s0.t+H2-c)<=TOL){ H2=c-s0.t; lines.push({axis:'h',at:num(c),edge:cand.edge.has(num(c))}); break; }
@@ -701,8 +775,8 @@ preview.addEventListener('pointerdown',e=>{
       el.style.width=L(id).w+'mm'; el.style.height=L(id).h+'mm';
     }
     showGuides(page,lines);
-    const gg=L(id);
-    hudZet(hud, mode==='move' ? `X ${gg.l} · Y ${gg.t} mm` : `${gg.w} × ${gg.h} mm`, ev);
+    const g=L(id);
+    hudZet(hud, mode==='move' ? `X ${g.l} · Y ${g.t} mm` : `${g.w} × ${g.h} mm`, ev);
     fillInsp();
   };
   const up=()=>{ removeEventListener('pointermove',move); removeEventListener('pointerup',up);
@@ -793,11 +867,7 @@ $('iFields').addEventListener('input',e=>{
   const k=t.dataset.k;
   if(t.value===''){ delete (m.layout[sel]||{})[k]; return draw(); }
   const v=parseFloat(t.value); if(isNaN(v)) return;
-  const g0=LAYOUT[sel]||{};
-  const grens={l:[-200,300], t:[-260,400], w:[2,300], h:[2,400],
-               pw:[2,120], fs:[4,120], fsN:[4,120], fsD:[4,120], fsP:[4,120]}[k];
-  set(sel, k, grens ? klem(v,grens[0],grens[1]) : v);
-  draw();
+  set(sel,k,v); draw();
 });
 $('iFields').addEventListener('click',e=>{
   const b=e.target.closest('[data-it]'); if(!b||!selItem) return;
@@ -825,11 +895,29 @@ $('edit').onclick=e=>{
 };
 
 /* ---------- formulier ---------- */
+function secties(){
+  if(m.soort==='lunch')
+    return [['l1',kop('k1')||'Blok links boven'],['l2',kop('k2')||'Blok links onder'],
+            ['l3',kop('k3')||'Blok rechts']];
+  return SECTIONS;
+}
+
 function drawForm(){
-  let h=`<div class="sec"><header><h2>Het concept — pagina 2</h2></header>
-    <p class="hint">Zet "Indeling bewerken" aan om vlakken te verslepen. Pijltjes verplaatsen met 0,25 mm, met Shift 1 mm.</p>
-    <textarea class="big" data-text="concept">${esc(m.concept)}</textarea></div>`;
-  for(const [id,label] of SECTIONS){
+  let h='';
+  if(m.soort==='lunch'){
+    h+=`<div class="sec"><header><h2>Koppen</h2></header>
+      <p class="hint">Zet "Indeling bewerken" aan om vlakken te verslepen. Pijltjes verplaatsen met 0,25 mm, met Shift 1 mm.</p>
+      <div class="row"><div class="l1"><input data-kop="titel" value="${esc(kop('titel'))}" placeholder="Titel"></div></div>
+      <div class="row"><div class="l1"><input data-kop="k1" value="${esc(kop('k1'))}" placeholder="Kop links boven"></div></div>
+      <div class="row"><div class="l1"><input data-kop="k2" value="${esc(kop('k2'))}" placeholder="Kop links onder"></div></div>
+      <div class="row"><div class="l1"><input data-kop="k3" value="${esc(kop('k3'))}" placeholder="Kop rechts"></div></div>
+    </div>`;
+  } else {
+    h+=`<div class="sec"><header><h2>Het concept — pagina 2</h2></header>
+      <p class="hint">Zet "Indeling bewerken" aan om vlakken te verslepen. Pijltjes verplaatsen met 0,25 mm, met Shift 1 mm.</p>
+      <textarea class="big" data-text="concept">${esc(m.concept)}</textarea></div>`;
+  }
+  for(const [id,label] of secties()){
     h+=`<div class="sec"><header><h2>${label}</h2><span class="count">${m.s[id].length}</span>
         <button class="mini" data-add="${id}">+ Gerecht</button></header>`;
     m.s[id].forEach((it,i)=>{
@@ -855,9 +943,10 @@ function drawForm(){
     });
     h+=`</div>`;
   }
-  h+=`<div class="sec"><header><h2>Wist je dat? — pagina 7</h2></header>
-      <textarea class="big" data-text="wist">${esc(m.wist)}</textarea></div>
-      <div class="sec"><header><h2>Indeling</h2></header>
+  if(m.soort!=='lunch')
+    h+=`<div class="sec"><header><h2>Wist je dat? — pagina 7</h2></header>
+      <textarea class="big" data-text="wist">${esc(m.wist)}</textarea></div>`;
+  h+=`<div class="sec"><header><h2>Indeling</h2></header>
       <button class="mini" id="resetAll">Alle vlakken terug naar de originele maatvoering</button></div>`;
   form.innerHTML=h;
 }
@@ -873,6 +962,7 @@ form.addEventListener('change',e=>{
 
 form.addEventListener('input',e=>{
   const t=e.target;
+  if(t.dataset.kop!==undefined){ (m.koppen=m.koppen||{})[t.dataset.kop]=t.value; return draw(); }
   if(t.dataset.text){ m[t.dataset.text]=t.value; return draw(); }
   if(t.dataset.f){ m.s[t.dataset.s][+t.dataset.i][t.dataset.f]=t.value; draw(); }
 });
@@ -958,12 +1048,20 @@ document.querySelector('.bar').addEventListener('click',e=>{
 $('undo').onclick=undo;
 $('redo').onclick=redo;
 
-document.getElementById('pdf').onclick=async()=>{
-  if(!SERVED){ say('PDF maken kan alleen via de server','err'); return; }
-  say('Eerst bewaren…','busy'); lastSaved=''; await push();
+/* de zoom van het scherm mag nooit in de print terechtkomen, ook niet bij Cmd+P */
+/* PDF laten maken door de browser buiten beeld: geen printvenster, geen schaling */
+$('pdf').onclick=async()=>{
+  if(!SERVED || lokaal){
+    say('PDF maken kan alleen via de server','err');
+    return;
+  }
+  say('Eerst bewaren…','busy');
+  lastSaved='';                       /* afdwingen dat de laatste stand op schijf staat */
+  await push();
   say('PDF maken…','busy');
   try{
-    const r=await fetch('/api/pdf',{method:'POST'});
+    const r=await fetch('/api/pdf',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({kaart})});
     const d=await r.json();
     if(!r.ok) throw new Error(d.fout||'onbekend');
     say('PDF klaar: '+d.pad,'ok');
@@ -989,6 +1087,8 @@ $('file').onchange=async e=>{
 
 /* ---------- automatisch bewaren (alleen als het via de server draait) ---------- */
 const SERVED = location.protocol.startsWith('http');
+let kaart = new URLSearchParams(location.search).get('kaart')
+         || localStorage.getItem('tafelaar-kaart') || 'diner';
 const status=$('status');
 let saveTimer=null, lastSaved='';
 
@@ -997,7 +1097,7 @@ function say(txt,cls){ status.hidden=false; status.textContent=txt; status.class
 async function pull(){
   if(!SERVED) return;
   try{
-    const r=await fetch('/api/menu');
+    const r=await fetch('/api/menu?kaart='+encodeURIComponent(kaart));
     if(!r.ok) throw 0;
     const d=await r.json();
     if(d && d.s){ m=d; lastSaved=JSON.stringify(m); }
@@ -1010,7 +1110,8 @@ async function push(){
   if(body===lastSaved) return;
   say('Bewaren…','busy');
   try{
-    const r=await fetch('/api/menu',{method:'POST',headers:{'Content-Type':'application/json'},body});
+    const r=await fetch('/api/menu?kaart='+encodeURIComponent(kaart),
+      {method:'POST',headers:{'Content-Type':'application/json'},body});
     if(!r.ok) throw 0;
     lastSaved=body;
     say('Bewaard om '+new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}),'ok');
@@ -1023,7 +1124,36 @@ const _draw=draw;
 draw=function(){ _draw.apply(this,arguments); autosave(); };
 addEventListener('beforeunload',()=>{ if(SERVED&&JSON.stringify(m)!==lastSaved) navigator.sendBeacon('/api/menu',JSON.stringify(m)); });
 
-(async()=>{ await pull(); applyType(); drawForm(); _draw();
+async function vulKaarten(){
+  if(!SERVED) return $('kaart').hidden=true;
+  let lijst=['diner'];
+  try{ const r=await fetch('/api/kaarten'); if(r.ok) lijst=(await r.json()).kaarten||lijst; }catch{}
+  if(!lijst.includes(kaart)) lijst.push(kaart);
+  $('kaart').innerHTML = lijst.map(x=>`<option value="${esc(x)}"${x===kaart?' selected':''}>${esc(x)}</option>`).join('')
+    + '<option value="__lunch">＋ nieuwe lunchkaart</option>'
+    + '<option value="__diner">＋ nieuwe dinerkaart</option>';
+}
+
+$('kaart').onchange=async e=>{
+  const v=e.target.value;
+  await push();                                   /* huidige kaart eerst bewaren */
+  if(v==='__lunch'||v==='__diner'){
+    const ruw=prompt('Naam van de nieuwe kaart:', v==='__lunch'?'lunch':'diner-2');
+    const naam=(ruw||'').trim().toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-|-$/g,'');
+    if(!naam) return vulKaarten();
+    kaart=naam;
+    m=structuredClone(v==='__lunch'?LUNCH:DEFAULT);
+    lastSaved=''; await push();
+  } else {
+    kaart=v; lastSaved=''; await pull();
+  }
+  localStorage.setItem('tafelaar-kaart',kaart);
+  past=[]; future=[];
+  applyType(); drawForm(); draw(true); past=[snap()]; refreshHist();
+  vulKaarten();
+};
+
+(async()=>{ await pull(); await vulKaarten(); applyType(); drawForm(); _draw();
   past=[snap()]; refreshHist();
   if(SERVED) lastSaved=JSON.stringify(m); })();
 </script>
