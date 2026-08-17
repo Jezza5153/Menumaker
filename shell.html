@@ -572,7 +572,7 @@ function tekenLunch(){
        style="${geo('lu.h.'+b.id)}">${esc(b.kop||'')}</div>`+
     (b.sub?`<div class="subk ${b.thema==='light'?'ink':'burg'}" data-el="lu.s.${b.id}"
        style="${geo2('lu.s.'+b.id)}">${nl(b.sub)}</div>`:'')+
-    block('lu.b.'+b.id, m.s[b.id]||[], b.thema==='light'?'light':'dark')).join('')}
+    (b.los?'':block('lu.b.'+b.id, m.s[b.id]||[], b.thema==='light'?'light':'dark'))).join('')}
 </div>`;
 }
 
@@ -1045,7 +1045,7 @@ $('edit').onclick=e=>{
 /* ---------- formulier ---------- */
 function secties(){
   if(m.soort==='lunch')
-    return (m.blokken||[]).map((b,i)=>[b.id, b.kop||('Blok '+(i+1))]);
+    return (m.blokken||[]).filter(b=>!b.los).map((b,i)=>[b.id, b.kop||('Blok '+(i+1))]);
   return SECTIONS;
 }
 
@@ -1054,7 +1054,7 @@ function drawForm(){
   if(m.soort==='lunch'){
     h+=`<div class="sec"><header><h2>Blokken</h2>
         <span class="count">${(m.blokken||[]).length}</span>
-        <button class="mini" id="blokErbij">+ Blok</button></header>
+        <button class="mini" id="blokErbij">+ Blok</button><button class='mini' id='kopErbij'>+ Losse kop</button></header>
       <p class="hint">Zet "Indeling bewerken" aan om vlakken te verslepen. Pijltjes verplaatsen met 0,25 mm, met Shift 1 mm.</p>
       <div class="row">
         <div class="l1"><input data-kop="titel" value="${esc(kop('titel'))}" placeholder="Titel bovenaan"></div>
@@ -1177,6 +1177,14 @@ form.addEventListener('click',e=>{
   if(b.id==='letters'){ INST.letters=!INST.letters; instBewaar(); drawForm(); return draw(); }
   if(b.dataset.legterug){ delete INST.leg[b.dataset.legterug]; instBewaar(); drawForm(); return draw(); }
 
+  if(b.id==='kopErbij'){
+    const id='k'+Date.now().toString(36);
+    const aantal=(m.blokken=m.blokken||[]).length;
+    m.blokken.push({id,kop:'NIEUWE KOP',sub:'',thema:'dark',los:1});
+    m.layout=m.layout||{};
+    m.layout['lu.h.'+id]={l:klem(6+aantal*4,4,120), t:klem(34+aantal*8,8,190)};
+    drawForm(); return draw();
+  }
   if(b.id==='blokErbij'){
     const id='b'+Date.now().toString(36);
     const n=(m.blokken=m.blokken||[]).length;
