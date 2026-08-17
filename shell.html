@@ -1450,7 +1450,7 @@ $('redo').onclick=redo;
 /* de zoom van het scherm mag nooit in de print terechtkomen, ook niet bij Cmd+P */
 /* PDF laten maken door de browser buiten beeld: geen printvenster, geen schaling */
 $('pdf').onclick=async()=>{
-  if(!SERVED || lokaal){
+  if(!SERVED){
     say('PDF maken kan alleen via de server','err');
     return;
   }
