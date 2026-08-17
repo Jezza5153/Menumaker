@@ -408,7 +408,7 @@ let editing=false, sel=null, selItem=null;
 
 const $=id=>document.getElementById(id);
 const form=$('form'), preview=$('preview'), insp=$('insp');
-const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nl=s=>esc(s).replace(/\n/g,'<br>');
 const LET={v:'V',g:'G',l:'L',b:'B'};
 const STDKLEUR={v:'#5D7A38',g:'#D8C54B',l:'#FBF9FB',b:'#C2703A'};
@@ -576,6 +576,19 @@ function tekenLunch(){
 </div>`;
 }
 
+function extraOpPaginas(){
+  if(m.soort==='lunch') return;
+  for(const b of (m.blokken||[])){
+    const pag=preview.children[(b.pag||2)-1];
+    if(!pag||!pag.classList.contains('page')) continue;
+    const kleur=b.thema==='light'?'ink':'burg';
+    let h=`<div class='hd ${kleur}' data-el='lu.h.${b.id}' style='${geo('lu.h.'+b.id)}'>${esc(b.kop||'')}</div>`;
+    if(b.sub) h+=`<div class='subk ${kleur}' data-el='lu.s.${b.id}' style='${geo2('lu.s.'+b.id)}'>${nl(b.sub)}</div>`;
+    if(!b.los) h+=block('lu.b.'+b.id, m.s[b.id]||[], b.thema==='light'?'light':'dark');
+    pag.insertAdjacentHTML('beforeend', h);
+  }
+}
+
 function draw(skipHist){
   if(!skipHist) commit();
   preview.innerHTML = m.soort==='lunch' ? tekenLunch() : `
@@ -644,6 +657,7 @@ function draw(skipHist){
 
 <div class="page"><span class="pagetag">8 · achterkant</span><img alt="achterkant" src="data:image/png;base64,__IMG4__"></div>`;
 
+  extraOpPaginas();
   imposeer();
   if(sel){ const el=preview.querySelector(`[data-el="${CSS.escape(sel)}"]`); if(el) mark(el); else {sel=null; drawInsp();} }
 }
@@ -1044,9 +1058,31 @@ $('edit').onclick=e=>{
 
 /* ---------- formulier ---------- */
 function secties(){
+  const eigen=(m.blokken||[]).filter(b=>!b.los);
   if(m.soort==='lunch')
-    return (m.blokken||[]).filter(b=>!b.los).map((b,i)=>[b.id, b.kop||('Blok '+(i+1))]);
-  return SECTIONS;
+    return eigen.map((b,i)=>[b.id, b.kop||('Blok '+(i+1))]);
+  return SECTIONS.concat(eigen.map((b,i)=>
+    [b.id, (b.kop||('Blok '+(i+1)))+' — pag. '+(b.pag||2)]));
+}
+
+function extraSectie(){
+  if(m.soort==='lunch') return '';
+  const lijst=m.blokken||[];
+  return `<div class='sec'><header><h2>Losse koppen en blokken</h2>
+    <span class='count'>${lijst.length}</span>
+    <button class='mini' id='kopErbij'>+ Losse kop</button>
+    <button class='mini' id='blokErbij'>+ Blok</button></header>
+    <p class='hint'>Kies op welke pagina het komt te staan. Slepen doe je met Indeling bewerken aan.</p>
+    ${lijst.map(b=>`<div class='row'>
+      <div class='l1'>
+        <input data-blokkop='${b.id}' value='${esc(b.kop||'')}' placeholder='Kop'>
+        <select data-blokpag='${b.id}'>${[2,3,5,7].map(nr=>
+          `<option value='${nr}'${(b.pag||2)==nr?' selected':''}>pag. ${nr}</option>`).join('')}</select>
+        <button class='mini ghost' data-blokthema='${b.id}' title='Donker of licht'>${b.thema==='light'?'licht':'donker'}</button>
+        <button class='mini ghost' data-blokweg='${b.id}' title='Verwijderen'>✕</button>
+      </div>
+      <input data-bloksub='${b.id}' value='${esc(b.sub||'')}' placeholder='Ondertitel (optioneel)'>
+    </div>`).join('')}</div>`;
 }
 
 function drawForm(){
@@ -1073,6 +1109,7 @@ function drawForm(){
       <p class="hint">Zet "Indeling bewerken" aan om vlakken te verslepen. Pijltjes verplaatsen met 0,25 mm, met Shift 1 mm.</p>
       <textarea class="big" data-text="concept">${esc(m.concept)}</textarea></div>`;
   }
+  h+=extraSectie();
   for(const [id,label] of secties()){
     h+=`<div class="sec"><header><h2 id="sec-${id}">${label}</h2><span class="count">${m.s[id].length}</span>
         <button class="mini" data-add="${id}">+ Gerecht</button></header>`;
@@ -1125,6 +1162,11 @@ function drawForm(){
 
 form.addEventListener('change',e=>{
   const t=e.target;
+  if(t.dataset.blokpag!==undefined){
+    const blok=(m.blokken||[]).find(x=>x.id===t.dataset.blokpag);
+    if(blok) blok.pag=+t.value;
+    drawForm(); return draw();
+  }
   if(t.dataset.legkleur!==undefined){ drawForm(); return draw(); }
   if(t.dataset.mvsec!==undefined && t.value){
     const from=t.dataset.s, i=+t.dataset.i, to=t.value;
@@ -1180,7 +1222,7 @@ form.addEventListener('click',e=>{
   if(b.id==='kopErbij'){
     const id='k'+Date.now().toString(36);
     const aantal=(m.blokken=m.blokken||[]).length;
-    m.blokken.push({id,kop:'NIEUWE KOP',sub:'',thema:'dark',los:1});
+    m.blokken.push({id,kop:'NIEUWE KOP',sub:'',thema:'dark',los:1,pag:2});
     m.layout=m.layout||{};
     m.layout['lu.h.'+id]={l:klem(6+aantal*4,4,120), t:klem(34+aantal*8,8,190)};
     drawForm(); return draw();
@@ -1188,7 +1230,7 @@ form.addEventListener('click',e=>{
   if(b.id==='blokErbij'){
     const id='b'+Date.now().toString(36);
     const n=(m.blokken=m.blokken||[]).length;
-    m.blokken.push({id,kop:'NIEUWE KOP',thema:'dark'});
+    m.blokken.push({id,kop:'NIEUWE KOP',thema:'dark',pag:2});
     m.s[id]=[{n:'Nieuw gerecht',d:'',p:'0',t:[]}];
     m.layout=m.layout||{};
     m.layout['lu.h.'+id]={l:klem(6+n*4,4,120),  t:klem(34+n*8,8,190)};
