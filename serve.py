@@ -58,7 +58,9 @@ def html_voor(naam):
         mode = json.loads(pad_van(naam).read_text('utf-8')).get('print', 'a5')
     except Exception:
         pass
-    regel = '@page{size:A4 landscape;margin:0}' if mode == 'a4' else '@page{size:A5;margin:0}'
+    regel = ('@page{size:A4 landscape;margin:0}' if mode == 'a4'
+             else '@page{size:154mm 216mm;margin:0}' if mode == 'druk'
+             else '@page{size:A5;margin:0}')
     oud = '<style id="pagerule">@page{size:A5;margin:0}</style>'
     return s.replace(oud, '<style id="pagerule">' + regel + '</style>', 1).encode('utf-8')
 

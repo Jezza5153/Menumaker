@@ -117,6 +117,9 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
 .a4 .page{margin:0;box-shadow:none}
 .a4 .pagetag{display:none}
 .a4.gedraaid{transform:rotate(180deg)}
+/* drukwerk: 3 mm afloop rondom, beeld loopt door tot over de snijrand */
+.druk .page{width:154mm;height:216mm;padding:3mm}
+.druk .page img{width:154mm;height:216mm;margin:-3mm}
 .snij{position:absolute;left:148.5mm;width:.2mm;height:5mm;background:#8A8A8A}
 .snij.t{top:0}.snij.b{bottom:0}
 .velnaam{position:absolute;left:0;top:-15px;font-family:'Inter',sans-serif;font-size:10px;
@@ -500,6 +503,16 @@ function secOf(id){
 
 /* geometrie van een element: gemeten waarde, eventueel overschreven */
 function L(id){ return Object.assign({},BASE(id),(m.layout||{})[id]||{}); }
+function geoDeco(id){
+  if(m.print!=='druk') return geo(id);
+  const g=L(id);
+  let l=g.l, t=g.t, w=g.w, h=g.h;
+  if(l<=0.1){ l-=3; w+=3; }
+  if(l+w>=147.9) w+=3;
+  if(t<=0.1){ t-=3; h+=3; }
+  if(t+h>=209.9) h+=3;
+  return `left:${l}mm;top:${t}mm;width:${w}mm;height:${h}mm;`;
+}
 function geo2(id){
   const g=L(id); let s=`left:${g.l}mm;top:${g.t}mm;`;
   if(g.w!=null) s+=`width:${g.w}mm;`;
@@ -566,7 +579,7 @@ function migreerLunch(){
 
 function tekenLunch(){
   return `<div class="page"><span class="pagetag">lunchkaart</span>
-  <div class="deco" data-el="lu.deco" style="${geo('lu.deco')}"></div>
+  <div class="deco" data-el="lu.deco" style="${geoDeco('lu.deco')}"></div>
   <div class="frame" data-el="lu.frame" style="${geo('lu.frame')}"></div>
   <div class="bar-burg" data-el="lu.bar" style="${geo('lu.bar')}"></div>
   <div class="hd outline" data-el="lu.hdT" style="${geo('lu.hdT')}">${esc(kop('titel'))}</div>
@@ -603,7 +616,7 @@ const PAGNAAM={kaft:'Kaft', concept:'Concept + arrangementen',
 const PAG={
   kaft:p=>`<div class="page"><span class="pagetag">__TAG__</span><img alt="kaft" src="data:image/png;base64,__IMG1__"></div>`,
   concept:p=>`<div class="page"><span class="pagetag">__TAG__</span>
-  <div class="deco" data-el="p2.deco" style="${geo('p2.deco')}"></div>
+  <div class="deco" data-el="p2.deco" style="${geoDeco('p2.deco')}"></div>
   <div class="frame" data-el="p2.frame" style="${geo('p2.frame')}"></div>
   <div class="hd burg r" data-el="p2.hdHet" style="${geo('p2.hdHet')}">HET</div>
   <div class="bar-burg" data-el="p2.barCon" style="${geo('p2.barCon')}"></div>
@@ -615,7 +628,7 @@ const PAG={
   ${block('p2.blkArr',m.s.arrangementen,'dark')}
 </div>`,
   kazen:p=>`<div class="page"><span class="pagetag">__TAG__</span>
-  <div class="deco" data-el="p3.deco" style="${geo('p3.deco')}"></div>
+  <div class="deco" data-el="p3.deco" style="${geoDeco('p3.deco')}"></div>
   <div class="frame" data-el="p3.frame" style="${geo('p3.frame')}"></div>
   <div class="bar-burg" data-el="p3.barKaz" style="${geo('p3.barKaz')}"></div>
   <div class="hd fill" data-el="p3.hdKaz" style="${geo('p3.hdKaz')}">KAZEN</div>
@@ -633,7 +646,7 @@ const PAG={
 </div>`,
   achter1:p=>`<div class="page"><span class="pagetag">__TAG__</span><img alt="achterkant" src="data:image/png;base64,__IMG2__"></div>`,
   koud:p=>`<div class="page"><span class="pagetag">__TAG__</span>
-  <div class="deco" data-el="p5.deco" style="${geo('p5.deco')}"></div>
+  <div class="deco" data-el="p5.deco" style="${geoDeco('p5.deco')}"></div>
   <div class="frame" data-el="p5.frame" style="${geo('p5.frame')}"></div>
   <div class="hd burg" data-el="p5.hdKou" style="${geo('p5.hdKou')}">KOUD</div>
   <div class="bar-burg" data-el="p5.barWar" style="${geo('p5.barWar')}"></div>
@@ -645,7 +658,7 @@ const PAG={
 </div>`,
   achter2:p=>`<div class="page"><span class="pagetag">__TAG__</span><img alt="achterkant" src="data:image/png;base64,__IMG3__"></div>`,
   desserts:p=>`<div class="page"><span class="pagetag">__TAG__</span>
-  <div class="deco" data-el="p7.deco" style="${geo('p7.deco')}"></div>
+  <div class="deco" data-el="p7.deco" style="${geoDeco('p7.deco')}"></div>
   <div class="frame" data-el="p7.frame" style="${geo('p7.frame')}"></div>
   <div class="bar-burg" data-el="p7.barDes" style="${geo('p7.barDes')}"></div>
   <div class="hd outline" data-el="p7.hdDes" style="${geo('p7.hdDes')}">DESSERTS</div>
@@ -659,7 +672,7 @@ const PAG={
 </div>`,
   achter3:p=>`<div class="page"><span class="pagetag">__TAG__</span><img alt="achterkant" src="data:image/png;base64,__IMG4__"></div>`,
   leeg:p=>`<div class="page"><span class="pagetag">__TAG__</span>
-  <div class="deco" data-el="${p.id}.deco" style="${geo(p.id+'.deco')}"></div>
+  <div class="deco" data-el="${p.id}.deco" style="${geoDeco(p.id+'.deco')}"></div>
   <div class="frame" data-el="${p.id}.frame" style="${geo(p.id+'.frame')}"></div>
 </div>`
 };
@@ -701,7 +714,7 @@ const VELLEN=[[0,2],[3,1],[4,6],[7,5]];
 const VELNAAM=['vel 1 · voorkant','vel 1 · achterkant','vel 2 · voorkant','vel 2 · achterkant'];
 
 function imposeer(){
-  if(m.print!=='a4') return;
+  if(m.print!=='a4') return;   /* drukwerk en los A5 blijven losse paginas */
   const ps=[...preview.children].filter(n=>n.classList.contains('page'));
 
   if(m.soort==='lunch'){
@@ -739,21 +752,27 @@ function imposeer(){
   preview.innerHTML=''; preview.appendChild(frag);
 }
 
+const PRINTSTAND={a5:'Print: los A5', a4:'Print: 2 op A4', druk:'Print: drukwerk'};
 function applyPrint(){
-  if(!m.print) m.print='a5';
-  $('pagerule').textContent = m.print==='a4'
-    ? '@page{size:A4 landscape;margin:0}'
-    : '@page{size:A5;margin:0}';
+  if(!PRINTSTAND[m.print]) m.print='a5';
+  $('pagerule').textContent =
+    m.print==='a4'   ? '@page{size:A4 landscape;margin:0}' :
+    m.print==='druk' ? '@page{size:154mm 216mm;margin:0}' :
+                       '@page{size:A5;margin:0}';
+  document.body.classList.toggle('druk', m.print==='druk');
   const b=$('opzet');
-  b.textContent = m.print==='a4' ? 'Print: 2 op A4' : 'Print: los A5';
-  b.classList.toggle('on', m.print==='a4');
+  b.textContent = PRINTSTAND[m.print];
+  b.classList.toggle('on', m.print!=='a5');
   const o=$('omslag');
   o.hidden = m.print!=='a4';
   if(!m.flip) m.flip='lang';
   o.textContent = m.flip==='kort' ? 'Omslaan: korte zijde' : 'Omslaan: lange zijde';
 }
 $('omslag').onclick=()=>{ m.flip = m.flip==='kort' ? 'lang' : 'kort'; applyPrint(); draw(); };
-$('opzet').onclick=()=>{ m.print = m.print==='a4' ? 'a5' : 'a4'; applyPrint(); draw(); };
+$('opzet').onclick=()=>{
+  m.print = m.print==='a5' ? 'a4' : m.print==='a4' ? 'druk' : 'a5';
+  applyPrint(); draw();
+};
 
 /* ---------- selectie, slepen en schalen ---------- */
 function mark(el){
@@ -1408,8 +1427,18 @@ form.addEventListener('drop',e=>{
 });
 
 /* ---------- korps en zoom ---------- */
+function opruimenLayout(){
+  /* vlakken die ooit buiten de pagina zijn beland halen de printer omlaag */
+  for(const [k,g] of Object.entries(m.layout||{})){
+    if(g.l!=null) g.l=klem(g.l,-60,148);
+    if(g.t!=null) g.t=klem(g.t,-60,210);
+    if(g.w!=null) g.w=klem(g.w,2,200);
+    if(g.h!=null) g.h=klem(g.h,2,260);
+  }
+}
+
 function applyType(){
-  migreerLunch(); migreerLegenda();
+  migreerLunch(); migreerLegenda(); opruimenLayout();
   if(m.soort!=='lunch') paginas();
   if(!m.type) m.type={};
   const t=m.type;
