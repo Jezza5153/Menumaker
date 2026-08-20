@@ -118,8 +118,10 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
 .a4 .pagetag{display:none}
 .a4.gedraaid{transform:rotate(180deg)}
 /* drukwerk: 3 mm afloop rondom, beeld loopt door tot over de snijrand */
-.druk .page{width:154mm;height:216mm;padding:3mm}
-.druk .page img{width:154mm;height:216mm;margin:-3mm}
+.druk .page{width:154mm;height:216mm}
+.druk .page img{width:154mm;height:216mm}
+.druk .rand.snij{inset:3mm}
+.druk .rand.veilig{inset:8mm}
 /* hulplijnen voor drukwerk: snijrand en veiligheidsmarge */
 .rand{position:absolute;pointer-events:none;z-index:45}
 .rand.snij{inset:0;outline:.3mm dashed rgba(255,122,156,.95);outline-offset:-.15mm}
@@ -284,7 +286,7 @@ const TAGS={v:'Vegetarisch',g:'Glutenvrij',l:'Lactosevrij',b:'Glutenvrij brood'}
 /* ====== gemeten maatvoering uit de originele PDF, in mm ====== */
 const LAYOUT={
  'p2.deco'   :{lb:'Decorvlak',       l:0,    t:0,     w:52.75, h:210},
- 'p2.frame'  :{lb:'Kader',           l:5, t:5, w:138, h:200},
+ 'p2.frame'  :{lb:'Kader',           l:5.5, t:5.5, w:137, h:199},
  'p2.hdHet'  :{lb:'Kop HET',         l:20,   t:14.6,  w:39.5,  fs:36},
  'p2.barCon' :{lb:'Balk CONCEPT',    l:62.31,t:12.7,  w:47.58, h:19.05},
  'p2.hdCon'  :{lb:'Kop CONCEPT',     l:65.1, t:15.6,  fs:36},
@@ -295,7 +297,7 @@ const LAYOUT={
  'p2.blkArr' :{lb:'Blok arrangementen',l:5.16,t:146.05,w:111.51,h:54.02,pw:15.92},
 
  'p3.deco'   :{lb:'Decorvlak',       l:0,    t:0,     w:148,   h:74.25},
- 'p3.frame'  :{lb:'Kader',           l:5, t:5, w:138, h:200},
+ 'p3.frame'  :{lb:'Kader',           l:5.5, t:5.5, w:137, h:199},
  'p3.barKaz' :{lb:'Balk KAZEN',      l:3.98, t:9.74,  w:55.54, h:16.08},
  'p3.hdKaz'  :{lb:'Kop KAZEN',       l:6.4,  t:11.4,  fs:40},
  'p3.hdCha'  :{lb:'Kop CHARCUTERIE', l:70,   t:12.6,  w:71.4,  fs:40},
@@ -306,7 +308,7 @@ const LAYOUT={
  'p3.legend' :{lb:'Legenda',         l:9.4,  t:155.62,w:29.55, h:47.75},
 
  'p5.deco'   :{lb:'Decorvlak',       l:95.42,t:0,     w:52.58, h:210},
- 'p5.frame'  :{lb:'Kader',           l:5, t:5, w:138, h:200},
+ 'p5.frame'  :{lb:'Kader',           l:5.5, t:5.5, w:137, h:199},
  'p5.hdKou'  :{lb:'Kop KOUD',        l:5.9,  t:8.3,   fs:44},
  'p5.barWar' :{lb:'Balk WARM',       l:101.94,t:6.77, w:38.1,  h:12.7},
  'p5.hdWar'  :{lb:'Kop WARM',        l:104.2,t:8.4,   fs:32},
@@ -316,7 +318,7 @@ const LAYOUT={
  'p5.blkWar' :{lb:'Blok warm',       l:72,   t:22.69, w:72.19, h:180.5, pw:15.4},
 
  'p7.deco'   :{lb:'Decorvlak',       l:59.1, t:0,     w:88.9,  h:210},
- 'p7.frame'  :{lb:'Kader',           l:5, t:5, w:138, h:200},
+ 'p7.frame'  :{lb:'Kader',           l:5.5, t:5.5, w:137, h:199},
  'p7.barDes' :{lb:'Balk DESSERTS',   l:4.66, t:22.27, w:114.8, h:15.91},
  'p7.hdDes'  :{lb:'Kop DESSERTS',    l:7.2,  t:24.4,  fs:44},
  'p7.rule1'  :{lb:'Streep boven',    l:86,   t:29.04, w:31,    h:.68},
@@ -328,7 +330,7 @@ const LAYOUT={
 
  /* lunchkaart: één A5 in dezelfde huisstijl */
  'lu.deco'   :{lb:'Decorvlak',       l:95.42,t:0,     w:52.58, h:210},
- 'lu.frame'  :{lb:'Kader',           l:5, t:5, w:138, h:200},
+ 'lu.frame'  :{lb:'Kader',           l:5.5, t:5.5, w:137, h:199},
  'lu.bar'    :{lb:'Balk titel',      l:5.16, t:9.5,   w:62,    h:19.05},
  'lu.hdT'    :{lb:'Kop titel',       l:7.6,  t:12.4,  fs:36},
  'lu.subT'   :{lb:'Ondertitel titel', l:5.16, t:30,  w:80, fs:13},
@@ -497,7 +499,7 @@ const LU_STD={
 function BASE(id){
   if(LAYOUT[id]) return LAYOUT[id];
   if(/\.deco$/.test(id))  return {lb:'Decorvlak', l:95.42, t:0, w:52.58, h:210};
-  if(/\.frame$/.test(id)) return {lb:'Kader', l:5, t:5, w:138, h:200};
+  if(/\.frame$/.test(id)) return {lb:'Kader', l:5.5, t:5.5, w:137, h:199};
   const t=/^lu\.(h|s|b)\.(.+)$/.exec(id||'');
   if(!t) return {};
   const blok=(m.blokken||[]).find(x=>x.id===t[2]);
@@ -520,16 +522,17 @@ function geoDeco(id){
   if(l+w>=147.9) w+=3;
   if(t<=0.1){ t-=3; h+=3; }
   if(t+h>=209.9) h+=3;
-  return `left:${l}mm;top:${t}mm;width:${w}mm;height:${h}mm;`;
+  return `left:${l+3}mm;top:${t+3}mm;width:${w}mm;height:${h}mm;`;
 }
+const afloop=()=>m.print==='druk'?3:0;
 function geo2(id){
-  const g=L(id); let s=`left:${g.l}mm;top:${g.t}mm;`;
+  const g=L(id), o=afloop(); let s=`left:${g.l+o}mm;top:${g.t+o}mm;`;
   if(g.w!=null) s+=`width:${g.w}mm;`;
   if(g.fs!=null) s+=`font-size:${g.fs}pt;`;
   return s;
 }
 function geo(id){
-  const g=L(id); let s=`left:${g.l}mm;top:${g.t}mm;`;
+  const g=L(id), o=afloop(); let s=`left:${g.l+o}mm;top:${g.t+o}mm;`;
   if(g.w!=null) s+=`width:${g.w}mm;`;
   if(g.h!=null) s+=`height:${g.h}mm;`;
   if(g.fs!=null) s+=`font-size:calc(${g.fs}pt * var(--hd));`;
@@ -1161,11 +1164,11 @@ $('veilig').onclick=()=>{
       if(/\.deco$/.test(id)) continue;
       const voor=JSON.stringify(L(id));
       const g=L(id);
-      if(g.l!=null && g.l<5) set(id,'l',5);
-      if(g.t!=null && g.t<5) set(id,'t',5);
+      if(g.l!=null && g.l<5.5) set(id,'l',5.5);
+      if(g.t!=null && g.t<5.5) set(id,'t',5.5);
       const g2=L(id);
-      if(g2.w!=null && g2.l+g2.w>143) set(id,'w',num(143-g2.l));
-      if(g2.h!=null && g2.t+g2.h>205) set(id,'h',num(205-g2.t));
+      if(g2.w!=null && g2.l+g2.w>142.5) set(id,'w',num(142.5-g2.l));
+      if(g2.h!=null && g2.t+g2.h>204.5) set(id,'h',num(204.5-g2.t));
       if(JSON.stringify(L(id))!==voor) aantal++;
     }
   }
@@ -1562,7 +1565,7 @@ $('pdf').onclick=async()=>{
       body:JSON.stringify({kaart})});
     const d=await r.json();
     if(!r.ok) throw new Error(d.fout||'onbekend');
-    say('PDF klaar: '+d.pad,'ok');
+    say('PDF klaar: '+d.pad+(d.marge?'  ·  '+d.marge:''), 'ok');
   }catch(e){ say('PDF mislukt: '+e.message,'err'); }
 };
 

@@ -91,6 +91,53 @@ def naar_voren(pad):
                    capture_output=True)
 
 
+LAATSTE_MELDING = None
+
+
+def nakijken(pad, afloop_mm):
+    """Meet hoe dicht de inhoud bij de snijrand komt. Levert een korte tekst op."""
+    try:
+        import sys
+        sys.path.insert(0, '/opt/homebrew/lib/python3.11/site-packages')
+        import fitz
+    except Exception:
+        return None
+    try:
+        doc = fitz.open(str(pad))
+        A = afloop_mm * 72 / 25.4
+        mm = 25.4 / 72
+        krapste = None
+        for nr, page in enumerate(doc, 1):
+            r = page.rect
+            trim = fitz.Rect(r.x0 + A, r.y0 + A, r.x1 - A, r.y1 - A)
+            vakken = []
+            for d in page.get_drawings():
+                b = d['rect']
+                if b.width <= 0 or b.height <= 0:
+                    continue
+                if b.x0 <= trim.x0 + 0.5 and b.x1 >= trim.x1 - 0.5 and b.height > 20:
+                    continue
+                if b.y0 <= trim.y0 + 0.5 and b.y1 >= trim.y1 - 0.5 and b.width > 20:
+                    continue
+                vakken.append(b)
+            for w in page.get_text('words'):
+                vakken.append(fitz.Rect(w[0], w[1], w[2], w[3]))
+            if not vakken:
+                continue
+            marge = min(min(b.x0 for b in vakken) - trim.x0,
+                        min(b.y0 for b in vakken) - trim.y0,
+                        trim.x1 - max(b.x1 for b in vakken),
+                        trim.y1 - max(b.y1 for b in vakken)) * mm
+            if krapste is None or marge < krapste[0]:
+                krapste = (marge, nr)
+        doc.close()
+        if krapste is None:
+            return None
+        return 'krapste marge %.1f mm op pagina %d' % krapste
+    except Exception:
+        return None
+
+
 def maak_pdf(naam):
     """Laat de browser buiten beeld printen: geen printvenster, geen schaling."""
     exe = next((b for b in BROWSERS if os.path.exists(b)), None)
@@ -111,7 +158,14 @@ def maak_pdf(naam):
         f.unlink(missing_ok=True)
     laatste = D / (naam + '-laatste.pdf')
     shutil.copy2(uit, laatste)
+    stand = 'a5'
+    try:
+        stand = json.loads(pad_van(naam).read_text('utf-8')).get('print', 'a5')
+    except Exception:
+        pass
+    melding = nakijken(uit, 3 if stand == 'druk' else 0)
     naar_voren(laatste)
+    globals()['LAATSTE_MELDING'] = melding
     return uit, None
 
 
@@ -163,7 +217,10 @@ class H(http.server.BaseHTTPRequestHandler):
             uit, fout = maak_pdf(naam)
             if fout:
                 return self.send(500, json.dumps({'fout': fout}).encode())
-            return self.send(200, json.dumps({'ok': True, 'pad': uit.name}).encode())
+            antwoord = {'ok': True, 'pad': uit.name}
+            if LAATSTE_MELDING:
+                antwoord['marge'] = LAATSTE_MELDING
+            return self.send(200, json.dumps(antwoord).encode())
 
         if pad == '/api/instellingen':
             try:
