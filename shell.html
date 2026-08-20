@@ -119,7 +119,12 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
 .a4.gedraaid{transform:rotate(180deg)}
 /* drukwerk: 3 mm afloop rondom, beeld loopt door tot over de snijrand */
 .druk .page{width:154mm;height:216mm}
-.druk .page img{width:154mm;height:216mm}
+/* beeldpaginas: scherp op ware grootte binnen de snijrand,
+   met een iets vergrote kopie erachter die de afloop vult */
+.druk .page img{width:148mm;height:210mm;margin:3mm;position:relative;z-index:1}
+.druk .page img.afloopbeeld{position:absolute;left:0;top:0;margin:0;
+                            width:154mm;height:216mm;z-index:0}
+.druk .page img.kleiner{width:143.6mm;height:203.9mm;margin:6.05mm 5.2mm}
 .druk .rand.snij{inset:3mm}
 .druk .rand.veilig{inset:9mm}
 /* hulplijnen voor drukwerk: snijrand en veiligheidsmarge */
@@ -605,6 +610,23 @@ function tekenLunch(){
 </div>`;
 }
 
+function afloopBeeld(){
+  if(m.print!=='druk') return;
+  const lijst = m.soort==='lunch' ? [] : paginas();
+  [...preview.children].forEach((pag,i)=>{
+    if(!pag.classList||!pag.classList.contains('page')) return;
+    const img=pag.querySelector('img');
+    if(!img || pag.querySelector('.afloopbeeld')) return;
+    if(lijst[i] && lijst[i].soort==='kaft'){
+      img.classList.add('kleiner');   /* egale tan rand: de pagina zelf vult de afloop */
+      return;
+    }
+    const kopie=img.cloneNode();
+    kopie.className='afloopbeeld';
+    pag.insertBefore(kopie, img);
+  });
+}
+
 function randenTonen(){
   if(!m.randen) return;
   for(const pag of preview.children){
@@ -750,6 +772,7 @@ function draw(skipHist){
   preview.innerHTML = m.soort==='lunch' ? tekenLunch() : tekenDiner();
 
   extraOpPaginas();
+  afloopBeeld();
   randenTonen();
   imposeer();
   if(sel){ const el=preview.querySelector(`[data-el="${CSS.escape(sel)}"]`); if(el) mark(el); else {sel=null; drawInsp();} }
