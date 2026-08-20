@@ -115,9 +115,10 @@ def nakijken(pad, afloop_mm):
                 b = d['rect']
                 if b.width <= 0 or b.height <= 0:
                     continue
-                if b.x0 <= trim.x0 + 0.5 and b.x1 >= trim.x1 - 0.5 and b.height > 20:
-                    continue
-                if b.y0 <= trim.y0 + 0.5 and b.y1 >= trim.y1 - 0.5 and b.width > 20:
+                raakt = (b.x0 <= trim.x0 + 0.5 or b.y0 <= trim.y0 + 0.5
+                         or b.x1 >= trim.x1 - 0.5 or b.y1 >= trim.y1 - 0.5)
+                groot = (b.width * b.height) > 0.15 * (trim.width * trim.height)
+                if raakt and groot:
                     continue
                 vakken.append(b)
             for w in page.get_text('words'):

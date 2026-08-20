@@ -505,6 +505,9 @@ function BASE(id){
   if(LAYOUT[id]) return LAYOUT[id];
   if(/\.deco$/.test(id))  return {lb:'Decorvlak', l:95.42, t:0, w:52.58, h:210};
   if(/\.frame$/.test(id)) return {lb:'Kader', l:6, t:6, w:136, h:198};
+  if(/\.bar$/.test(id))   return {lb:'Balk logo', l:53.93, t:86.19, w:62.15, h:22.61};
+  if(/\.hdDe$/.test(id))  return {lb:'Kop DE', l:33, t:89, w:19, fs:36};
+  if(/\.hdTaf$/.test(id)) return {lb:'Kop TAFELAAR', l:56.5, t:89, fs:36};
   const t=/^lu\.(h|s|b)\.(.+)$/.exec(id||'');
   if(!t) return {};
   const blok=(m.blokken||[]).find(x=>x.id===t[2]);
@@ -746,6 +749,31 @@ const PAG={
   <div class="frame" data-el="${p.id}.frame" style="${geo(p.id+'.frame')}"></div>
 </div>`
 };
+
+/* achterkanten worden getekend in plaats van als beeld geplaatst,
+   zodat het kader ook daar op 6 mm staat en het houtvlak netjes afloopt */
+function vlak(l,t,w,h,kleur){
+  const o=afloop();
+  if(m.print==='druk'){
+    if(l<=0.1){ l-=3; w+=3; }
+    if(l+w>=147.9) w+=3;
+    if(t<=0.1){ t-=3; h+=3; }
+    if(t+h>=209.9) h+=3;
+  }
+  return `left:${l+o}mm;top:${t+o}mm;width:${w}mm;height:${h}mm;background:${kleur};`;
+}
+function achterkant(p, vlakken){
+  return `<div class="page"><span class="pagetag">__TAG__</span>
+  ${vlakken.map(v=>`<div class="deco" style="${vlak(v[0],v[1],v[2],v[3],v[4]||'var(--wood)')}"></div>`).join('')}
+  <div class="frame" data-el="${p.id}.frame" style="${geo(p.id+'.frame')}"></div>
+  <div class="bar-burg" data-el="${p.id}.bar" style="${geo(p.id+'.bar')}"></div>
+  <div class="hd burg r" data-el="${p.id}.hdDe" style="${geo(p.id+'.hdDe')}">DE</div>
+  <div class="hd outline" data-el="${p.id}.hdTaf" style="${geo(p.id+'.hdTaf')}">TAFELAAR</div>
+</div>`;
+}
+PAG.achter1=p=>achterkant(p,[[0,0,103.55,165.52]]);
+PAG.achter2=p=>achterkant(p,[[0,0,148,210],[61.98,50.72,86.02,159.28,'var(--tan)']]);
+PAG.achter3=p=>achterkant(p,[[0,0,81.53,210]]);
 
 function paginas(){
   if(!m.paginas){
