@@ -121,11 +121,11 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
 .druk .page{width:154mm;height:216mm}
 .druk .page img{width:154mm;height:216mm}
 .druk .rand.snij{inset:3mm}
-.druk .rand.veilig{inset:8mm}
+.druk .rand.veilig{inset:9mm}
 /* hulplijnen voor drukwerk: snijrand en veiligheidsmarge */
 .rand{position:absolute;pointer-events:none;z-index:45}
 .rand.snij{inset:0;outline:.3mm dashed rgba(255,122,156,.95);outline-offset:-.15mm}
-.rand.veilig{inset:5mm;outline:.3mm dashed rgba(49,224,196,.95)}
+.rand.veilig{inset:6mm;outline:.3mm dashed rgba(49,224,196,.95)}
 .randlabel{position:absolute;left:1mm;bottom:1mm;z-index:46;pointer-events:none;
            font:600 2.4mm 'Inter',system-ui,sans-serif;color:rgba(49,224,196,.95)}
 .snij{position:absolute;left:148.5mm;width:.2mm;height:5mm;background:#8A8A8A}
@@ -243,7 +243,7 @@ textarea.big{font-family:inherit;font-size:13px;line-height:1.45;width:100%;back
       <button id="snap" class="on">Uitlijnhulp</button>
       <button id="randen">Marges tonen</button>
       <button id="check">Marges nakijken</button>
-      <button id="veilig">Alles op 5 mm</button>
+      <button id="veilig">Alles op 6 mm</button>
       <button id="opzet">Print: los A5</button>
       <button id="omslag" hidden>Omslaan: lange zijde</button>
       <div class="sizer"><span>Titel</span>
@@ -286,7 +286,7 @@ const TAGS={v:'Vegetarisch',g:'Glutenvrij',l:'Lactosevrij',b:'Glutenvrij brood'}
 /* ====== gemeten maatvoering uit de originele PDF, in mm ====== */
 const LAYOUT={
  'p2.deco'   :{lb:'Decorvlak',       l:0,    t:0,     w:52.75, h:210},
- 'p2.frame'  :{lb:'Kader',           l:5.5, t:5.5, w:137, h:199},
+ 'p2.frame'  :{lb:'Kader',           l:6, t:6, w:136, h:198},
  'p2.hdHet'  :{lb:'Kop HET',         l:20,   t:14.6,  w:39.5,  fs:36},
  'p2.barCon' :{lb:'Balk CONCEPT',    l:62.31,t:12.7,  w:47.58, h:19.05},
  'p2.hdCon'  :{lb:'Kop CONCEPT',     l:65.1, t:15.6,  fs:36},
@@ -297,7 +297,7 @@ const LAYOUT={
  'p2.blkArr' :{lb:'Blok arrangementen',l:5.16,t:146.05,w:111.51,h:54.02,pw:15.92},
 
  'p3.deco'   :{lb:'Decorvlak',       l:0,    t:0,     w:148,   h:74.25},
- 'p3.frame'  :{lb:'Kader',           l:5.5, t:5.5, w:137, h:199},
+ 'p3.frame'  :{lb:'Kader',           l:6, t:6, w:136, h:198},
  'p3.barKaz' :{lb:'Balk KAZEN',      l:3.98, t:9.74,  w:55.54, h:16.08},
  'p3.hdKaz'  :{lb:'Kop KAZEN',       l:6.4,  t:11.4,  fs:40},
  'p3.hdCha'  :{lb:'Kop CHARCUTERIE', l:70,   t:12.6,  w:71.4,  fs:40},
@@ -308,7 +308,7 @@ const LAYOUT={
  'p3.legend' :{lb:'Legenda',         l:9.4,  t:155.62,w:29.55, h:47.75},
 
  'p5.deco'   :{lb:'Decorvlak',       l:95.42,t:0,     w:52.58, h:210},
- 'p5.frame'  :{lb:'Kader',           l:5.5, t:5.5, w:137, h:199},
+ 'p5.frame'  :{lb:'Kader',           l:6, t:6, w:136, h:198},
  'p5.hdKou'  :{lb:'Kop KOUD',        l:5.9,  t:8.3,   fs:44},
  'p5.barWar' :{lb:'Balk WARM',       l:101.94,t:6.77, w:38.1,  h:12.7},
  'p5.hdWar'  :{lb:'Kop WARM',        l:104.2,t:8.4,   fs:32},
@@ -318,7 +318,7 @@ const LAYOUT={
  'p5.blkWar' :{lb:'Blok warm',       l:72,   t:22.69, w:72.19, h:180.5, pw:15.4},
 
  'p7.deco'   :{lb:'Decorvlak',       l:59.1, t:0,     w:88.9,  h:210},
- 'p7.frame'  :{lb:'Kader',           l:5.5, t:5.5, w:137, h:199},
+ 'p7.frame'  :{lb:'Kader',           l:6, t:6, w:136, h:198},
  'p7.barDes' :{lb:'Balk DESSERTS',   l:4.66, t:22.27, w:114.8, h:15.91},
  'p7.hdDes'  :{lb:'Kop DESSERTS',    l:7.2,  t:24.4,  fs:44},
  'p7.rule1'  :{lb:'Streep boven',    l:86,   t:29.04, w:31,    h:.68},
@@ -330,7 +330,7 @@ const LAYOUT={
 
  /* lunchkaart: één A5 in dezelfde huisstijl */
  'lu.deco'   :{lb:'Decorvlak',       l:95.42,t:0,     w:52.58, h:210},
- 'lu.frame'  :{lb:'Kader',           l:5.5, t:5.5, w:137, h:199},
+ 'lu.frame'  :{lb:'Kader',           l:6, t:6, w:136, h:198},
  'lu.bar'    :{lb:'Balk titel',      l:5.16, t:9.5,   w:62,    h:19.05},
  'lu.hdT'    :{lb:'Kop titel',       l:7.6,  t:12.4,  fs:36},
  'lu.subT'   :{lb:'Ondertitel titel', l:5.16, t:30,  w:80, fs:13},
@@ -499,7 +499,7 @@ const LU_STD={
 function BASE(id){
   if(LAYOUT[id]) return LAYOUT[id];
   if(/\.deco$/.test(id))  return {lb:'Decorvlak', l:95.42, t:0, w:52.58, h:210};
-  if(/\.frame$/.test(id)) return {lb:'Kader', l:5.5, t:5.5, w:137, h:199};
+  if(/\.frame$/.test(id)) return {lb:'Kader', l:6, t:6, w:136, h:198};
   const t=/^lu\.(h|s|b)\.(.+)$/.exec(id||'');
   if(!t) return {};
   const blok=(m.blokken||[]).find(x=>x.id===t[2]);
@@ -611,7 +611,7 @@ function randenTonen(){
     if(!pag.classList||!pag.classList.contains('page')) continue;
     pag.insertAdjacentHTML('beforeend',
       `<div class="rand snij"></div><div class="rand veilig"></div>`+
-      `<span class="randlabel">5 mm veilig · roze = snijrand</span>`);
+      `<span class="randlabel">6 mm veilig · roze = snijrand</span>`);
   }
 }
 
@@ -629,15 +629,15 @@ function margesNakijken(){
       const x=(r.left-pr.left)*k-pad, y=(r.top-pr.top)*k-pad;
       const w=r.width*k, h=r.height*k;
       const over=[];
-      if(x<5) over.push('links '+num(x)+'mm');
-      if(y<5) over.push('boven '+num(y)+'mm');
-      if(x+w>143) over.push('rechts '+num(148-(x+w))+'mm');
-      if(y+h>205) over.push('onder '+num(210-(y+h))+'mm');
+      if(x<6) over.push('links '+num(x)+'mm');
+      if(y<6) over.push('boven '+num(y)+'mm');
+      if(x+w>142) over.push('rechts '+num(148-(x+w))+'mm');
+      if(y+h>204) over.push('onder '+num(210-(y+h))+'mm');
       if(over.length) fout.push('pag. '+(i+1)+' · '+((BASE(id)||{}).lb||id)+' — '+over.join(', '));
     }
   });
-  if(!fout.length) return alert('Alles blijft netjes binnen 5 mm van de snijrand.');
-  alert('Deze vlakken komen binnen 5 mm van de snijrand:' + String.fromCharCode(10,10) + fout.join(String.fromCharCode(10))
+  if(!fout.length) return alert('Alles blijft netjes binnen 6 mm van de snijrand.');
+  alert('Deze vlakken komen binnen 6 mm van de snijrand:' + String.fromCharCode(10,10) + fout.join(String.fromCharCode(10))
     + String.fromCharCode(10,10) + 'Dat hoeft niet fout te zijn — een decorvlak mag aflopen — maar tekst en kaderlijnen kunnen bij het snijden scheef uitvallen.');
 }
 
@@ -1155,7 +1155,7 @@ $('randen').onclick=e=>{ m.randen=!m.randen; e.target.classList.toggle('on',!!m.
 $('check').onclick=margesNakijken;
 $('veilig').onclick=()=>{
   const nl2=String.fromCharCode(10);
-  if(!confirm('Alle vlakken binnen 5 mm van de snijrand halen?'+nl2+nl2+'Decorvlakken blijven aflopen.')) return;
+  if(!confirm('Alle vlakken binnen 6 mm van de snijrand halen?'+nl2+nl2+'Decorvlakken blijven aflopen.')) return;
   let aantal=0;
   for(const pag of preview.children){
     if(!pag.classList||!pag.classList.contains('page')) continue;
@@ -1164,11 +1164,11 @@ $('veilig').onclick=()=>{
       if(/\.deco$/.test(id)) continue;
       const voor=JSON.stringify(L(id));
       const g=L(id);
-      if(g.l!=null && g.l<5.5) set(id,'l',5.5);
-      if(g.t!=null && g.t<5.5) set(id,'t',5.5);
+      if(g.l!=null && g.l<6) set(id,'l',6);
+      if(g.t!=null && g.t<6) set(id,'t',6);
       const g2=L(id);
-      if(g2.w!=null && g2.l+g2.w>142.5) set(id,'w',num(142.5-g2.l));
-      if(g2.h!=null && g2.t+g2.h>204.5) set(id,'h',num(204.5-g2.t));
+      if(g2.w!=null && g2.l+g2.w>142) set(id,'w',num(142-g2.l));
+      if(g2.h!=null && g2.t+g2.h>204) set(id,'h',num(204-g2.t));
       if(JSON.stringify(L(id))!==voor) aantal++;
     }
   }
